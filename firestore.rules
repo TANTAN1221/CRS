@@ -1,0 +1,206 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =====================================================================
+    // HELPER FUNCTIONS (Custom Claims + Users Profile Fallback)
+    // =====================================================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function currentRole() {
+      return isSignedIn() && request.auth.token.role != null
+        ? request.auth.token.role
+        : (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+            : 'applicant');
+    }
+
+    function isAdmin() {
+      return isSignedIn() && currentRole() == 'admin';
+    }
+
+    function isPersonnel() {
+      return isSignedIn() && (currentRole() == 'personnel' || currentRole() == 'admin');
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // =====================================================================
+    // 1. USERS COLLECTION (Profiles & RA 10173 Privacy Consent)
+    // =====================================================================
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isPersonnel();
+      // Citizens can create their own profile only with role == 'applicant'
+      allow create: if isOwner(userId)
+                    && request.resource.data.role == 'applicant'
+                    && request.resource.data.privacyConsentAt != null;
+      // Citizens can update own contact details but NEVER escalate their own role
+      allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role)
+                    || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // =====================================================================
+    // 2. ROLES & PERMISSIONS MATRIX
+    // =====================================================================
+    match /roles_permissions/{roleId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // =====================================================================
+    // 3. CIVIL REGISTRY SERVICES & REQUIREMENTS (Informational Fees Only)
+    // =====================================================================
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /service_requirements/{reqId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // =====================================================================
+    // 4. APPLICATIONS & SUBCOLLECTIONS (documents, ai_screenings, status_history)
+    // =====================================================================
+    match /applications/{applicationId} {
+      allow read: if isPersonnel() || (isSignedIn() && resource.data.applicantId == request.auth.uid);
+
+      allow create: if isSignedIn()
+                    && request.resource.data.applicantId == request.auth.uid
+                    && request.resource.data.status in ['submitted', 'pre_screened']
+                    && request.resource.data.referenceNo is string;
+
+      // Applicants can update own application only when status is 'submitted' or 'returned'
+      allow update: if isPersonnel()
+                    || (isSignedIn()
+                        && resource.data.applicantId == request.auth.uid
+                        && resource.data.status in ['submitted', 'returned']
+                        && request.resource.data.applicantId == resource.data.applicantId
+                        && request.resource.data.referenceNo == resource.data.referenceNo);
+
+      allow delete: if isAdmin();
+
+      // Subcollection: uploaded document metadata
+      match /documents/{docId} {
+        allow read: if isPersonnel()
+                    || (isSignedIn() && get(/databases/$(database)/documents/applications/$(applicationId)).data.applicantId == request.auth.uid);
+        allow create: if isSignedIn()
+                      && get(/databases/$(database)/documents/applications/$(applicationId)).data.applicantId == request.auth.uid
+                      && request.resource.data.mimeType in ['application/pdf', 'image/jpeg', 'image/png']
+                      && request.resource.data.fileSizeBytes <= 10 * 1024 * 1024;
+        allow update: if isPersonnel();
+        allow delete: if isAdmin();
+      }
+
+      // Subcollection: AI Document Pre-Screenings
+      match /ai_screenings/{screeningId} {
+        allow read: if isPersonnel()
+                    || (isSignedIn() && get(/databases/$(database)/documents/applications/$(applicationId)).data.applicantId == request.auth.uid);
+        allow create, update: if isPersonnel()
+                              || (isSignedIn() && get(/databases/$(database)/documents/applications/$(applicationId)).data.applicantId == request.auth.uid);
+        allow delete: if isAdmin();
+      }
+
+      // Subcollection: Application Status History
+      match /status_history/{historyId} {
+        allow read: if isPersonnel()
+                    || (isSignedIn() && get(/databases/$(database)/documents/applications/$(applicationId)).data.applicantId == request.auth.uid);
+        allow create: if isSignedIn();
+        allow update, delete: if false;
+      }
+    }
+
+    // Top-level mirror collections for efficient officer queue queries
+    match /application_documents/{docId} {
+      allow read: if isPersonnel() || (isSignedIn() && resource.data.applicantId == request.auth.uid);
+      allow create: if isSignedIn()
+                    && request.resource.data.applicantId == request.auth.uid
+                    && request.resource.data.mimeType in ['application/pdf', 'image/jpeg', 'image/png']
+                    && request.resource.data.fileSizeBytes <= 10 * 1024 * 1024;
+      allow update: if isPersonnel();
+      allow delete: if isAdmin();
+    }
+
+    match /ai_screenings/{screeningId} {
+      allow read: if isPersonnel() || (isSignedIn() && resource.data.applicantId == request.auth.uid);
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    // =====================================================================
+    // 5. APPOINTMENT SCHEDULES, TIME SLOTS (ATOMIC) & APPOINTMENTS
+    // =====================================================================
+    match /appointment_schedules/{scheduleId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /time_slots/{slotId} {
+      allow read: if true;
+      // Atomic transaction guard: bookedCount cannot exceed capacity and cannot be negative
+      allow create, update: if isSignedIn()
+                            && request.resource.data.bookedCount >= 0
+                            && request.resource.data.bookedCount <= request.resource.data.capacity;
+      allow delete: if isAdmin();
+    }
+
+    match /appointments/{appointmentId} {
+      allow read: if isPersonnel() || (isSignedIn() && resource.data.applicantId == request.auth.uid);
+
+      allow create: if isSignedIn()
+                    && request.resource.data.applicantId == request.auth.uid
+                    && request.resource.data.status == 'reserved';
+
+      // Applicants can cancel or reschedule their own reserved appointment; personnel manage check-ins
+      allow update: if isPersonnel()
+                    || (isSignedIn()
+                        && resource.data.applicantId == request.auth.uid
+                        && request.resource.data.applicantId == resource.data.applicantId
+                        && request.resource.data.status in ['reserved', 'cancelled']);
+
+      allow delete: if isAdmin();
+
+      match /status_history/{historyId} {
+        allow read: if isPersonnel()
+                    || (isSignedIn() && get(/databases/$(database)/documents/appointments/$(appointmentId)).data.applicantId == request.auth.uid);
+        allow create: if isSignedIn();
+        allow update, delete: if false;
+      }
+    }
+
+    // =====================================================================
+    // 6. PUBLIC TRACKING, NOTIFICATIONS, AUDIT LOGS & SYSTEM SETTINGS
+    // =====================================================================
+    match /tracking/{trackingCode} {
+      // Public tracking lookup by tracking code (TRK-CRS-2026-XXXX)
+      allow read: if true;
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isPersonnel());
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    match /audit_logs/{logId} {
+      // Immutable append-only audit trail: admins read, authenticated/functions create, NO ONE can update or delete
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    match /system_settings/{settingKey} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

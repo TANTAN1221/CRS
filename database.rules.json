@@ -1,0 +1,8 @@
+{
+  "rules": {
+    "crs": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}

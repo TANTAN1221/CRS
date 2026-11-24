@@ -1,0 +1,38 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isPersonnelOrAdmin() {
+      return isSignedIn()
+        && (request.auth.token.role == 'personnel'
+            || request.auth.token.role == 'admin'
+            || (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
+                && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['personnel', 'admin']));
+    }
+
+    function isValidDocumentUpload() {
+      return request.resource != null
+        && request.resource.size > 0
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType in ['application/pdf', 'image/jpeg', 'image/png'];
+    }
+
+    // Private bucket structure: civil-registry-documents/{applicantId}/{applicationId}/{fileName}
+    match /civil-registry-documents/{applicantId}/{applicationId}/{fileName} {
+      // Applicants read only their own uploaded files; personnel & admin read for verification
+      allow read: if (isSignedIn() && request.auth.uid == applicantId) || isPersonnelOrAdmin();
+
+      // Applicants upload only to their own folder with strict 10 MB and PDF/JPG/PNG enforcement
+      allow create, update: if isSignedIn()
+                            && request.auth.uid == applicantId
+                            && isValidDocumentUpload();
+
+      // Only admin or owner can remove a file
+      allow delete: if (isSignedIn() && request.auth.uid == applicantId) || isPersonnelOrAdmin();
+    }
+  }
+}

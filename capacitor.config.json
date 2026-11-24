@@ -1,0 +1,15 @@
+{
+  "appId": "gov.civilregistry.portal",
+  "appName": "Civil Registry Portal",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
+  }
+}

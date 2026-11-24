@@ -1,0 +1,230 @@
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-navy: #0e2756;
+  --primary-deep: #0a1b3d;
+  --primary-light: #183d84;
+  --accent-gold: #c59b27;
+  --bg-slate-soft: #f8fafc;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  font-family: 'Plus Jakarta Sans', 'Atkinson Hyperlegible', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #0f172a;
+  background-color: #f8fafc;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  line-height: 1.55;
+  letter-spacing: -0.005em;
+}
+
+/* Readable baseline contrast & comfortable sizing without extra controls */
+.text-\[10px\] {
+  font-size: 0.75rem !important;
+  line-height: 1.125rem !important;
+}
+
+.text-\[11px\] {
+  font-size: 0.8125rem !important;
+  line-height: 1.25rem !important;
+}
+
+.text-slate-400 {
+  color: #475569 !important;
+}
+
+.text-slate-500 {
+  color: #334155 !important;
+}
+
+/* Prevent text or flex children from overflowing their card/container on mobile */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+code, pre {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Heading balance & scroll margin (web-design-guidelines) */
+h1, h2, h3, h4 {
+  text-wrap: balance;
+  scroll-margin-top: 5rem;
+  overflow-wrap: break-word;
+}
+
+/* Prevent 300ms double-tap delay on touch screens */
+button, a, select, input, textarea, label, [role="button"] {
+  touch-action: manipulation;
+}
+
+/* Accessible keyboard focus ring (:focus-visible) */
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #0e2756;
+  outline-offset: 2px;
+}
+
+/* Tabular numbers for KPI counters, reference numbers, and fee comparisons */
+.tabular-nums,
+.font-mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Modern Civic Sans-Serif Display Headings (replaces ornate editorial serif) */
+.font-serif,
+h1, h2, h3, h4 {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  letter-spacing: -0.015em;
+}
+
+/* High-legibility form inputs, labels, and body copy for elders & citizens */
+p, label, input, select, textarea, span {
+  font-family: 'Plus Jakarta Sans', 'Atkinson Hyperlegible', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.bg-navy-pattern {
+  background-color: #0e2756;
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0.03) 2px,
+    transparent 2px,
+    transparent 14px
+  );
+}
+
+.bg-grid-pattern {
+  background-size: 30px 30px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+.accent-bar {
+  display: inline-block;
+  width: 3px;
+  height: 1.1em;
+  background-color: #ffffff;
+  vertical-align: -0.1em;
+  margin-right: 0.65rem;
+}
+
+.accent-bar-navy {
+  display: inline-block;
+  width: 4px;
+  height: 1.15em;
+  background-color: #0e2756;
+  vertical-align: -0.15em;
+  margin-right: 0.65rem;
+  border-radius: 2px;
+}
+
+/* Senior-friendly form input: 48px min touch height & 16px+ font size to prevent iOS/Android auto-zoom */
+.form-input {
+  width: 100%;
+  min-height: 48px;
+  border: 1.5px solid #94a3b8;
+  border-radius: 0.625rem;
+  padding: 0.7rem 0.95rem;
+  font-size: 1rem;
+  line-height: 1.45rem;
+  color: #0f172a;
+  background-color: #ffffff;
+  font-weight: 500;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+/* Ensure inputs with a left icon never overlap the icon on mobile or desktop */
+.form-input-icon {
+  padding-left: 2.65rem !important;
+}
+
+@media (min-width: 768px) {
+  .form-input {
+    min-height: 46px;
+    font-size: 0.95rem;
+  }
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #0e2756;
+  box-shadow: 0 0 0 4px rgba(14, 39, 86, 0.22);
+}
+
+/* Modal & drawer overscroll containment */
+.modal-overlay {
+  overscroll-behavior: contain;
+}
+
+/* Safe-area support for mobile notch & bottom gesture bar */
+.safe-bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.mobile-page-padding {
+  padding-bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 1024px) {
+  .mobile-page-padding {
+    padding-bottom: 0;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+@keyframes scanBeam {
+  0% { transform: translateY(0%); opacity: 0.9; }
+  50% { transform: translateY(200px); opacity: 1; }
+  100% { transform: translateY(0%); opacity: 0.9; }
+}
+.scan-beam {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #10b981, #3b82f6, transparent);
+  box-shadow: 0 0 12px #10b981;
+  animation: scanBeam 2.1s infinite ease-in-out;
+}
+
+/* Respect prefers-reduced-motion (ui-ux-pro-max & web-design-guidelines) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .scan-beam {
+    animation: none !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
