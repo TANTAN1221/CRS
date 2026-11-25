@@ -50,7 +50,6 @@ import {
   getDownloadURL,
   supabase,
   SUPABASE_BUCKET,
-  httpsCallable,
 } from '../services/firebase';
 
 const PortalContext = createContext(null);
@@ -1637,11 +1636,6 @@ export function PortalProvider({ children }) {
       setProfile((prev) => (prev ? { ...prev, role: newRole } : prev));
     }
     const sdk = getFirebaseSdk();
-    if (sdk?.functions && targetUser?.uid) {
-      const assignRole = httpsCallable(sdk.functions, 'setUserRole');
-      await assignRole({ targetUid: targetUser.uid, role: newRole });
-      await sdk.auth.currentUser?.getIdToken(true).catch(() => {});
-    }
     if (sdk?.db) {
       await Promise.all([
         targetUser?.id
