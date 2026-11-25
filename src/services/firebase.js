@@ -1661,8 +1661,7 @@ export function evaluateChecklistWithAI({
     });
   });
 
-  const isReady =
-    missingItems.length === 0 && unreadableItems.length === 0;
+  const isReady = missingItems.length === 0;
 
   return {
     isReady,

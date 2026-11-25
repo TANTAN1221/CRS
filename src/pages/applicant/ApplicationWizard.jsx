@@ -78,7 +78,6 @@ export default function ApplicationWizardPage() {
     fatherName: '',
     registryNumber: '',
     idNumber: '',
-    purpose: 'Passport / DFA Application',
     copiesCount: 1,
   });
 
@@ -136,7 +135,10 @@ export default function ApplicationWizardPage() {
       if (!saved) return;
       if (saved.selectedServiceId) setSelectedServiceId(saved.selectedServiceId);
       if (Number.isInteger(saved.step) && saved.step >= 1 && saved.step <= 4) setStep(saved.step);
-      if (saved.subject) setSubject((prev) => ({ ...prev, ...saved.subject }));
+      if (saved.subject) {
+        const { purpose: _oldPurpose, ...savedSubject } = saved.subject;
+        setSubject((prev) => ({ ...prev, ...savedSubject }));
+      }
       if (saved.uploadedDocs) setUploadedDocs(saved.uploadedDocs);
       if (saved.reqFindings) setReqFindings(saved.reqFindings);
       if (saved.circumstances) setCircumstances((prev) => ({ ...prev, ...saved.circumstances }));
@@ -194,6 +196,10 @@ export default function ApplicationWizardPage() {
   const isDeathService = selectedServiceId === 'death_cert';
   const isMarriageService = selectedServiceId === 'marriage_cert';
   const serviceReqs = requirements[selectedService.id] || requirements.birth_cert || [];
+  const uploadCaption = (label) =>
+    /\b(id|identification)\b/i.test(label)
+      ? 'Mag-upload ng malinaw na larawan ng valid ID. Dapat mabasa ang pangalan at mga detalye.'
+      : 'Mag-upload ng malinaw na larawan o PDF ng dokumento. Siguraduhing kita ang buong pahina.';
   const availableSlots = getTimeSlotsForDate(aptDate);
 
   // Live AI-Assisted Document Review Summary against the approved checklist
@@ -305,9 +311,9 @@ export default function ApplicationWizardPage() {
 
       if (status === 'unreadable') {
         showToast(
-          `Please replace "${itemLabel}" with a clear photo of the actual document.`,
-          'error',
-          'Please Replace Photo'
+          `"${itemLabel}" was attached. OCR could not read it clearly; you may continue and staff will review it.`,
+          'warning',
+          'Saved for Staff Review'
         );
       } else if (status === 'flagged_for_staff') {
         showToast(
@@ -349,9 +355,10 @@ export default function ApplicationWizardPage() {
       showToast(`Complete the record subject details: ${validation.missing.join(', ')}.`, 'warning', 'Missing Record Details');
       return;
     }
+    const { purpose: _oldPurpose, ...subjectDetails } = subject;
     const created = await createApplication({
       serviceId: selectedService.id,
-      subjectDetails: subject,
+      subjectDetails,
       copiesCount: subject.copiesCount,
       uploadedDocs: Object.values(uploadedDocs),
       aiScreenings: Object.values(reqFindings),
@@ -853,30 +860,6 @@ export default function ApplicationWizardPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-800">
-                  Purpose of Request *
-                </label>
-                <span className="block text-[11px] italic text-slate-600 mb-1">
-                  Saan gagamitin ang dokumento (hal. Pension, SSS, Passport)
-                </span>
-                <select
-                  value={subject.purpose}
-                  onChange={(e) => setSubject({ ...subject, purpose: e.target.value })}
-                  className="form-input text-xs"
-                >
-                  <option value="Legal Claims / Estate / GSIS / SSS">
-                    Senior Benefit / Pension / GSIS / SSS / PhilHealth
-                  </option>
-                  <option value="Passport / DFA Application">Passport / DFA Application</option>
-                  <option value="School Enrollment / Board Exam">
-                    School Enrollment / Board Exam
-                  </option>
-                  <option value="Employment / Local Work">Employment / Local Work</option>
-                  <option value="Visa / Overseas Immigration">Visa / Overseas Immigration</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-800">
                   Number of Certified Copies *
                 </label>
                 <span className="block text-[11px] italic text-slate-600 mb-1">
@@ -1316,6 +1299,9 @@ export default function ApplicationWizardPage() {
                               </div>
 
                               {/* Uniform Portal File Picker Control */}
+                              <p className="text-xs text-slate-700" lang="fil">
+                                {uploadCaption(subSlot.label)}
+                              </p>
                               <label className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-xl border border-slate-300 bg-slate-50/80 hover:border-[#0e2756] hover:bg-blue-50/30 cursor-pointer transition-all">
                                 <div className="flex items-center gap-2.5 min-w-0">
                                   <span className="px-3.5 py-2 bg-[#0e2756] hover:bg-[#122850] text-white rounded-lg text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 shadow-2xs flex-shrink-0">
@@ -1373,10 +1359,10 @@ export default function ApplicationWizardPage() {
                                 <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-950 text-xs space-y-1.5 animate-fade-in">
                                   <div className="font-bold flex items-center gap-1.5 text-rose-800">
                                     <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-                                    Please Upload a Clear Photo of This Document
+                                    OCR Could Not Read This File Clearly
                                   </div>
                                   <p className="text-[11px] text-rose-800 leading-relaxed">
-                                    {slotFinding.summary}
+                                    Your file is attached. You may replace it with a clearer copy or continue; staff will review it.
                                   </p>
                                 </div>
                               )}
@@ -1400,6 +1386,9 @@ export default function ApplicationWizardPage() {
                       <>
                         {/* Uniform Portal File Picker Control */}
                         <div className="space-y-2">
+                          <p className="text-xs text-slate-700" lang="fil">
+                            {uploadCaption(req.name)}
+                          </p>
                           <label className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-slate-300 bg-white hover:border-[#0e2756] hover:bg-blue-50/20 cursor-pointer transition-all">
                             <div className="flex items-center gap-3 min-w-0">
                               <span className="px-4 py-2.5 bg-[#0e2756] hover:bg-[#122850] text-white rounded-lg text-xs font-semibold whitespace-nowrap flex items-center gap-2 shadow-2xs flex-shrink-0">
@@ -1460,10 +1449,10 @@ export default function ApplicationWizardPage() {
                           <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-950 text-xs space-y-1.5 animate-fade-in">
                             <div className="font-bold flex items-center gap-1.5 text-rose-800">
                               <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-                              Please Upload a Clear Photo of This Document
+                              OCR Could Not Read This File Clearly
                             </div>
                             <p className="text-[11px] text-rose-800 leading-relaxed">
-                              {finding.summary}
+                              Your file is attached. You may replace it with a clearer copy or continue; staff will review it.
                             </p>
                           </div>
                         )}
@@ -1506,7 +1495,7 @@ export default function ApplicationWizardPage() {
                 >
                   {aiChecklistReview.isReady
                     ? 'Ready for Next Step'
-                    : `${aiChecklistReview.missingItems.length + aiChecklistReview.unreadableItems.length} Item(s) Still Needed`}
+                    : `${aiChecklistReview.missingItems.length} Document(s) Not Attached`}
                 </span>
               </div>
 
@@ -1540,10 +1529,10 @@ export default function ApplicationWizardPage() {
                   )}
                 </div>
 
-                {/* 2. Photos That Need to Be Replaced */}
+                {/* 2. Attached files that need staff review */}
                 <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-2 shadow-2xs">
                   <div className="font-bold text-slate-900 flex items-center justify-between">
-                    <span>2. Photos That Need a Clearer Copy</span>
+                    <span>2. Attached Files for Staff Review</span>
                     <span
                       className={`px-2 py-0.5 rounded font-mono text-[11px] ${
                         aiChecklistReview.unreadableItems.length > 0
@@ -1562,7 +1551,7 @@ export default function ApplicationWizardPage() {
                     <ul className="space-y-1 text-[11px] text-rose-800 list-disc list-inside">
                       {aiChecklistReview.unreadableItems.map((u) => (
                         <li key={u.id}>
-                          <strong className="text-rose-950">{u.name}:</strong> Please replace with a clear photo of the actual document.
+                          <strong className="text-rose-950">{u.name}:</strong> Attached. OCR could not read it clearly. Staff will review it; you may upload a clearer copy if available.
                         </li>
                       ))}
                     </ul>
@@ -1598,11 +1587,13 @@ export default function ApplicationWizardPage() {
                     <span>4. Attached Documents Ready for Staff</span>
                     <span className="px-2 py-0.5 rounded font-mono bg-blue-50 text-[#0e2756] border border-blue-200 text-[11px]">
                       {aiChecklistReview.verifiedItems.length +
-                        aiChecklistReview.flaggedForStaffItems.length}
+                        aiChecklistReview.flaggedForStaffItems.length +
+                        aiChecklistReview.unreadableItems.length}
                     </span>
                   </div>
                   {aiChecklistReview.verifiedItems.length +
-                    aiChecklistReview.flaggedForStaffItems.length ===
+                    aiChecklistReview.flaggedForStaffItems.length +
+                    aiChecklistReview.unreadableItems.length ===
                   0 ? (
                     <p className="text-[11px] text-slate-600">
                       Your attached documents will appear here once you choose a photo or file above.
@@ -1634,19 +1625,7 @@ export default function ApplicationWizardPage() {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  if (aiChecklistReview.unreadableItems.length > 0) {
-                    showToast(
-                      `Please re-upload a clear copy of: ${aiChecklistReview.unreadableItems
-                        .map((i) => i.name)
-                        .join(', ')}`,
-                      'error',
-                      'Blurry / Unreadable Upload'
-                    );
-                    return;
-                  }
-                  setStep(4);
-                }}
+                onClick={() => setStep(4)}
                 className="w-full sm:w-auto px-6 py-3 bg-[#0e2756] text-white rounded-lg text-xs font-semibold hover:bg-[#122850] flex items-center justify-center gap-2"
               >
                 <span>Next: Choose Visit Schedule</span>
