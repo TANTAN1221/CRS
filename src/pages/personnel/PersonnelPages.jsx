@@ -588,7 +588,7 @@ export function DocumentVerificationPage() {
         [activeDocKey]: findingObj,
       }));
       showToast(
-        `OCR comparison completed for "${activeDoc.requirementName || activeDoc.fileName}" (${res.overallScore}% score).`,
+        `OCR comparison completed for "${activeDoc.requirementName || activeDoc.fileName}". ${res.readabilityStatus === 'verified' ? 'Checks passed.' : 'Staff review required.'}`,
         res.readabilityStatus === 'unreadable' ? 'error' : 'success',
         'OCR Comparison Complete'
       );
@@ -1036,26 +1036,22 @@ export function DocumentVerificationPage() {
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2 font-bold">
-                    <span>
-                      AI OCR Finding ({activeAiFinding.completenessScore || 0}% Score)
-                    </span>
+                    <span>OCR document checks</span>
                     <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-white/80 border">
                       {activeAiFinding.status === 'unreadable'
-                        ? 'Rejected / Dummy'
+                        ? 'Unreadable'
                         : activeAiFinding.status === 'flagged_for_staff'
                         ? 'Mismatch / Staff Review'
-                        : 'Matched'}
+                        : 'Checks passed'}
                     </span>
                   </div>
-                  <p className="text-[11px] leading-relaxed">{activeAiFinding.summary}</p>
-                  {activeAiFinding.extractedTextSnippet && (
-                    <div className="p-2 bg-white/90 rounded border border-slate-200 text-[11px] font-mono text-slate-700 break-words">
-                      <strong className="text-slate-900 block text-[10px] uppercase">
-                        Extracted OCR Text from Uploaded File:
-                      </strong>
-                      {activeAiFinding.extractedTextSnippet}
-                    </div>
-                  )}
+                  <p className="text-xs leading-relaxed">
+                    {activeAiFinding.status === 'unreadable'
+                      ? 'Text could not be reliably read. Inspect the original file or request a clearer upload.'
+                      : activeAiFinding.status === 'flagged_for_staff'
+                      ? `Staff review needed: ${activeAiFinding.comparisonChecks?.filter((check) => !check.matched).map((check) => check.label).join(', ') || 'document details not confirmed'}.`
+                      : 'OCR found the expected details. Verify the original before approval.'}
+                  </p>
                   {Array.isArray(activeAiFinding.comparisonChecks) &&
                     activeAiFinding.comparisonChecks.length > 0 && (
                       <div className="pt-1.5 border-t border-black/10 space-y-1">
@@ -1070,6 +1066,14 @@ export function DocumentVerificationPage() {
                         ))}
                       </div>
                     )}
+                  {activeAiFinding.extractedTextSnippet && (
+                    <details className="text-[11px]">
+                      <summary className="cursor-pointer font-semibold">View extracted text</summary>
+                      <p className="mt-2 p-2 bg-white/90 rounded border border-slate-200 font-mono text-slate-700 break-words">
+                        {activeAiFinding.extractedTextSnippet}
+                      </p>
+                    </details>
+                  )}
                 </div>
               ) : (
                 <div className="p-2.5 bg-white rounded-lg border border-slate-200 text-[11px] text-slate-500">

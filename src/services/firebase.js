@@ -1051,14 +1051,15 @@ export async function scanDocumentForAutoFill({
         file.downloadUrl)
   );
 
-  // If no real file content was uploaded (e.g. user clicked a Sample ID Preset in the top modal),
-  // return the sample preset directly.
+  // A document without file content has no OCR evidence.
   if (!hasRealFileContent) {
-    await new Promise((r) => setTimeout(r, 450));
     return {
       ...preset,
-      readabilityStatus: 'verified',
+      overallScore: 0,
+      readabilityStatus: 'unreadable',
       fileName: fName,
+      summary: 'File could not be read. Open the upload and review it manually.',
+      comparisonChecks: [],
       scannedAt: new Date().toISOString(),
     };
   }
@@ -1090,7 +1091,8 @@ export async function scanDocumentForAutoFill({
     .toLowerCase()
     .split(/[^a-z]+/)
     .filter((t) => t.length >= 3);
-  const matchedNameTokens = nameTokens.filter((t) => lowerText.includes(t));
+  const ocrWords = new Set(lowerText.match(/[a-z]{3,}/g) || []);
+  const matchedNameTokens = nameTokens.filter((t) => ocrWords.has(t));
   const nameMatchRatio =
     nameTokens.length > 0 ? matchedNameTokens.length / nameTokens.length : 0;
 
@@ -1189,52 +1191,60 @@ export async function scanDocumentForAutoFill({
   };
 
   // 3. Evaluate how well the real document matches the Requirement Type AND Step 2 Form Details
-  const reqTypeMatched = matchedReqKeywords.length >= 2;
-  const hasStep2Name = nameTokens.length > 0;
+  const typeClues = reqProfile.category === 'Valid Government-Issued ID'
+    ? ['identification', 'pagkakakilanlan', 'pambansang', 'passport', 'license', 'umid', 'postal', 'voter', 'philhealth', 'crn']
+    : reqProfile.category === 'Certificate of Live Birth / Birth Record'
+    ? ['birth', 'live birth', 'child', 'mother', 'father']
+    : reqProfile.keywords.filter((kw) => !['certificate', 'registry', 'republic', 'pilipinas', 'name', 'date'].includes(kw));
+  const reqTypeMatched = matchedReqKeywords.length >= 2 && typeClues.some((kw) => lowerText.includes(kw));
+  const hasStep2Name = nameTokens.length >= 2;
   // A partial token hit is not a match. This prevents an unrelated document
   // containing one common name token from being reported as verified.
   const isNameMismatch = !hasStep2Name || nameMatchRatio < 0.75;
 
-  // Calculate genuine score from real OCR confidence + keyword match + Step 2 name comparison
-  const computedScore = Math.min(
-    98,
-    Math.max(
-      66,
-      Math.round(
-        rawOcrConf * 0.45 +
-          Math.min(25, matchedGeneralKeywords.length * 5) +
-          (reqTypeMatched ? 15 : 0) +
-          (!isNameMismatch ? 15 : 0)
-      )
-    )
-  );
+  // Evidence score: readable text (25), correct document type (30),
+  // and the subject's name (45). OCR confidence only affects readability.
+  // This is a checklist score, not a probability that a document is genuine.
+  const computedScore = Math.min(100, Math.round(
+    Math.min(25, rawOcrConf * 0.25) +
+    (reqTypeMatched ? 30 : 0) +
+    (!isNameMismatch ? 45 : 0)
+  ));
 
   // If the file is a real ID/document, but either doesn't match the specific requirement slot OR the name on the document doesn't match Step 2:
   if (!reqTypeMatched || isNameMismatch || isDateMismatch) {
     return {
       ...preset,
       fields: extractedFields,
-      overallScore: Math.min(79, computedScore),
+      overallScore: isDateMismatch ? Math.min(40, computedScore) : computedScore,
       readabilityStatus: 'flagged_for_staff',
       fileName: fName,
       extractedTextSnippet: extractedSnippet,
       comparisonChecks: [
         {
           label: 'Photo Clarity',
-          value: 'Clear and attached',
+          value: 'Text readable',
           matched: true,
         },
         {
-          label: 'Name & Document Check',
+          label: 'Document Type',
+          value: reqTypeMatched ? 'Expected type found' : 'Expected type not confirmed',
+          matched: reqTypeMatched,
+        },
+        {
+          label: 'Subject Name',
           value: isNameMismatch
-            ? `Name "${expectedName}" was not clearly seen — Staff will verify`
-            : `Name confirmed against the submitted document`,
+            ? 'Name not confirmed in OCR text'
+            : 'Name found in OCR text',
           matched: !isNameMismatch,
         },
+        ...(isDateMismatch ? [{ label: 'Date', value: 'Document year differs from form', matched: false }] : []),
       ],
       summary: isNameMismatch
-        ? `Your photo is readable, but the submitted document does not sufficiently confirm the name "${expectedName}". Staff must verify it before approval.`
-        : `Your photo is attached. Our Civil Registry staff will check the details on this document for you.`,
+        ? 'Subject name not confirmed. Compare the uploaded document with the form before approval.'
+        : isDateMismatch
+        ? 'Document date differs from the form. Staff review required.'
+        : 'Document type not confirmed. Staff review required.',
       scannedAt: new Date().toISOString(),
     };
   }
@@ -1249,21 +1259,22 @@ export async function scanDocumentForAutoFill({
     extractedTextSnippet: extractedSnippet,
     comparisonChecks: [
       {
-        label: 'Photo Clarity',
-        value: 'Clear and easy to read',
+        label: 'OCR Text',
+        value: 'Readable',
         matched: true,
       },
       {
-        label: 'Name & Document Check',
-        value: hasStep2Name
-          ? `Matches "${expectedName}"`
-          : `Matches ${reqProfile.category}`,
+        label: 'Document Type',
+        value: 'Expected type found',
+        matched: true,
+      },
+      {
+        label: 'Subject Name',
+        value: 'Name found in OCR text',
         matched: true,
       },
     ],
-    summary: `Your photo is clear and matches ${
-      hasStep2Name ? `"${expectedName}"` : 'your form details'
-    }.`,
+    summary: 'Document type and subject name found in OCR text. Staff should verify the original.',
     scannedAt: new Date().toISOString(),
   };
 }
