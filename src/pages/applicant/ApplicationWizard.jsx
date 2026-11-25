@@ -355,6 +355,15 @@ export default function ApplicationWizardPage() {
       showToast(`Complete the record subject details: ${validation.missing.join(', ')}.`, 'warning', 'Missing Record Details');
       return;
     }
+    if (aiChecklistReview.missingItems.length > 0) {
+      setStep(3);
+      showToast(
+        `Attach the required items before submitting: ${aiChecklistReview.missingItems.map((item) => item.name).join(', ')}.`,
+        'warning',
+        'Documents Missing'
+      );
+      return;
+    }
     const { purpose: _oldPurpose, ...subjectDetails } = subject;
     const created = await createApplication({
       serviceId: selectedService.id,
@@ -392,6 +401,24 @@ export default function ApplicationWizardPage() {
     return { valid: missing.length === 0, missing };
   };
 
+  const goToStep = (targetStep) => {
+    if (targetStep >= 3) {
+      const validation = validateSubjectDetails();
+      if (!validation.valid) {
+        setDetailsAttempted(true);
+        setStep(2);
+        showToast(`Complete the person details: ${validation.missing.join(', ')}.`, 'warning', 'Missing Person Details');
+        return;
+      }
+    }
+    if (targetStep >= 4 && aiChecklistReview.missingItems.length > 0) {
+      setStep(3);
+      showToast(`Attach the required items: ${aiChecklistReview.missingItems.map((item) => item.name).join(', ')}.`, 'warning', 'Documents Missing');
+      return;
+    }
+    setStep(targetStep);
+  };
+
   const informationalTotal =
     (selectedService.fee_amount || 155) * Number(subject.copiesCount || 1);
 
@@ -424,7 +451,7 @@ export default function ApplicationWizardPage() {
             <button
               key={s.num}
               type="button"
-              onClick={() => setStep(s.num)}
+              onClick={() => goToStep(s.num)}
               className={`p-2.5 rounded-lg border flex items-center gap-2 text-left transition-all min-w-0 ${
                 step === s.num
                   ? 'text-[#0e2756] border-[#0e2756] bg-blue-50/60 font-bold'
@@ -1625,7 +1652,7 @@ export default function ApplicationWizardPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setStep(4)}
+                onClick={() => goToStep(4)}
                 className="w-full sm:w-auto px-6 py-3 bg-[#0e2756] text-white rounded-lg text-xs font-semibold hover:bg-[#122850] flex items-center justify-center gap-2"
               >
                 <span>Next: Choose Visit Schedule</span>
