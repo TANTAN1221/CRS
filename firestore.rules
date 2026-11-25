@@ -10,10 +10,12 @@ service cloud.firestore {
     }
 
     function currentRole() {
-      return isSignedIn() && request.auth.token.role != null
-        ? request.auth.token.role
-        : (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-            ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+      // Firestore user profile is the source of truth for this deployment.
+      // Auth claims are only a fallback for accounts without a profile yet.
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+        : (isSignedIn() && request.auth.token.role != null
+            ? request.auth.token.role
             : 'applicant');
     }
 
@@ -42,9 +44,10 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isOwner(userId) || isPersonnel();
       // Citizens can create their own profile only with role == 'applicant'
-      allow create: if isOwner(userId)
-                    && request.resource.data.role == 'applicant'
-                    && request.resource.data.privacyConsentAt != null;
+      allow create: if isAdmin()
+                    || (isOwner(userId)
+                        && request.resource.data.role == 'applicant'
+                        && request.resource.data.privacyConsentAt != null);
       // Citizens can update own contact details but NEVER escalate their own role
       allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role)
                     || isAdmin();

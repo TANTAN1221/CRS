@@ -123,7 +123,7 @@ export function PortalProvider({ children }) {
       // accounts may receive the full verification queue. Never start the
       // listener before Firebase Auth has established a user session.
       const currentUid = sdk.auth?.currentUser?.uid;
-      if (currentUid) {
+      if (currentUid && profile?.id === currentUid) {
         const applicationsSource =
           profile?.role === 'personnel' || profile?.role === 'admin'
             ? collection(sdk.db, 'applications')
@@ -153,9 +153,11 @@ export function PortalProvider({ children }) {
         setApplications([]);
       }
 
-      unsubs.push(
+      if (currentUid && profile?.id === currentUid) unsubs.push(
         onSnapshot(
-          collection(sdk.db, 'appointments'),
+          profile?.role === 'personnel' || profile?.role === 'admin'
+            ? collection(sdk.db, 'appointments')
+            : query(collection(sdk.db, 'appointments'), where('applicantId', '==', currentUid)),
           (snap) => {
             const list = snap.docs
               .map((d) => ({ id: d.id, ...d.data() }))
@@ -213,7 +215,7 @@ export function PortalProvider({ children }) {
         )
       );
 
-      unsubs.push(
+      if (currentUid && (profile?.role === 'personnel' || profile?.role === 'admin')) unsubs.push(
         onSnapshot(
           collection(sdk.db, 'users'),
           (snap) => {
@@ -336,14 +338,7 @@ export function PortalProvider({ children }) {
           // Priority: designated admin -> RBAC email role map -> Auth displayName role tag -> Firestore user doc -> token claim -> applicant
           const resolvedRole = isAdminEmail
             ? 'admin'
-            : emailRoleRecord?.role ||
-              displayNameRole ||
-              (loadedProfile?.role && loadedProfile.role !== 'applicant'
-                ? loadedProfile.role
-                : null) ||
-              tokenRes?.claims?.role ||
-              loadedProfile?.role ||
-              'applicant';
+            : loadedProfile?.role || tokenRes?.claims?.role || 'applicant';
 
           const baseData = { ...(emailRoleRecord || {}), ...(loadedProfile || {}) };
           const userRecord = {
@@ -497,16 +492,9 @@ export function PortalProvider({ children }) {
       const cleanDisplayName = extractCleanNameFromAuthUser(cred.user);
       const isAdminEmail = isDesignatedAdminEmail(cred.user.email || email);
 
-      const role = isAdminEmail
+          const role = isAdminEmail
         ? 'admin'
-        : emailRoleRecord?.role ||
-          displayNameRole ||
-          (loadedProfile?.role && loadedProfile.role !== 'applicant'
-            ? loadedProfile.role
-            : null) ||
-          tokenRes?.claims?.role ||
-          loadedProfile?.role ||
-          'applicant';
+        : loadedProfile?.role || tokenRes?.claims?.role || 'applicant';
 
       const baseData = { ...(emailRoleRecord || {}), ...(loadedProfile || {}) };
       const userObj = {
