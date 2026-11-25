@@ -220,7 +220,7 @@ export function PortalProvider({ children }) {
           collection(sdk.db, 'users'),
           (snap) => {
             const list = snap.docs
-              .map((d) => ({ id: d.id, ...d.data() }))
+              .map((d) => ({ ...d.data(), id: d.id }))
               .filter(
                 (u) =>
                   u &&
@@ -331,11 +331,10 @@ export function PortalProvider({ children }) {
           }
 
           const tokenRes = await getIdTokenResult(fbUser).catch(() => null);
-          const displayNameRole = extractRoleFromAuthUser(fbUser);
           const cleanDisplayName = extractCleanNameFromAuthUser(fbUser);
           const isAdminEmail = isDesignatedAdminEmail(fbUser.email);
 
-          // Priority: designated admin -> RBAC email role map -> Auth displayName role tag -> Firestore user doc -> token claim -> applicant
+          // The UID profile is authoritative; a display name cannot grant access.
           const resolvedRole = isAdminEmail
             ? 'admin'
             : loadedProfile?.role || tokenRes?.claims?.role || 'applicant';
@@ -488,11 +487,10 @@ export function PortalProvider({ children }) {
       }
 
       const tokenRes = await getIdTokenResult(cred.user).catch(() => null);
-      const displayNameRole = extractRoleFromAuthUser(cred.user);
       const cleanDisplayName = extractCleanNameFromAuthUser(cred.user);
       const isAdminEmail = isDesignatedAdminEmail(cred.user.email || email);
 
-          const role = isAdminEmail
+      const role = isAdminEmail
         ? 'admin'
         : loadedProfile?.role || tokenRes?.claims?.role || 'applicant';
 
@@ -1617,36 +1615,17 @@ export function PortalProvider({ children }) {
       (u) => String(u.email || '').trim().toLowerCase() === cleanEmail
     );
     const targetUser = existingUser ? { ...existingUser, role: newRole } : null;
-    setUsersList((prev) =>
-      prev.map((u) => {
-        if (String(u.email || '').trim().toLowerCase() !== cleanEmail) return u;
-        return { ...u, role: newRole };
-      })
-    );
-    if (
-      profile &&
-      String(profile.email || '').trim().toLowerCase() === cleanEmail
-    ) {
-      setProfile((prev) => (prev ? { ...prev, role: newRole } : prev));
-    }
+    if (!targetUser?.id) throw new Error('This account has no Firestore user profile to update.');
     const sdk = getFirebaseSdk();
-    if (sdk?.db) {
-      await Promise.all([
-        targetUser?.id
-          ? setDoc(
-              doc(sdk.db, 'users', targetUser.id),
-              { role: newRole },
-              { merge: true }
-            ).catch(() => {})
-          : Promise.resolve(),
-        cleanEmail
-          ? setDoc(
-              doc(sdk.db, 'user_roles_by_email', emailKey),
-              { ...(targetUser || { email }), role: newRole },
-              { merge: true }
-            ).catch(() => {})
-          : Promise.resolve(),
-      ]);
+    if (!sdk?.db) throw new Error('Firestore is unavailable. Please retry.');
+    await setDoc(doc(sdk.db, 'users', targetUser.id), { role: newRole }, { merge: true });
+    await setDoc(doc(sdk.db, 'user_roles_by_email', emailKey),
+      { ...targetUser, role: newRole }, { merge: true });
+    setUsersList((prev) => prev.map((u) =>
+      String(u.email || '').trim().toLowerCase() === cleanEmail ? { ...u, role: newRole } : u
+    ));
+    if (profile && String(profile.email || '').trim().toLowerCase() === cleanEmail) {
+      setProfile((prev) => prev ? { ...prev, role: newRole } : prev);
     }
     if (sdk?.rtdb && sdk?.auth?.currentUser) {
       Promise.all([

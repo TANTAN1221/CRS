@@ -379,13 +379,14 @@ export function AdminUsersPage() {
                   </span>
                   <select
                     value={u.role}
-                    onChange={(e) => {
-                      changeUserRole(u.email, e.target.value);
-                      showToast(
-                        `Updated ${u.email} role to ${e.target.value.toUpperCase()}`,
-                        'success',
-                        'Role Updated'
-                      );
+                    onChange={async (e) => {
+                      const nextRole = e.target.value;
+                      try {
+                        await changeUserRole(u.email, nextRole);
+                        showToast(`Updated ${u.email} role to ${nextRole.toUpperCase()}`, 'success', 'Role Updated');
+                      } catch (error) {
+                        showToast(error.message || 'Could not save role', 'error', 'Role Update Failed');
+                      }
                     }}
                     className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold"
                   >
@@ -433,13 +434,14 @@ export function AdminUsersPage() {
                     <td className="py-3.5 px-4 text-right">
                       <select
                         value={u.role}
-                        onChange={(e) => {
-                          changeUserRole(u.email, e.target.value);
-                          showToast(
-                            `Updated ${u.email} role to ${e.target.value.toUpperCase()}`,
-                            'success',
-                            'Role Updated'
-                          );
+                        onChange={async (e) => {
+                          const nextRole = e.target.value;
+                          try {
+                            await changeUserRole(u.email, nextRole);
+                            showToast(`Updated ${u.email} role to ${nextRole.toUpperCase()}`, 'success', 'Role Updated');
+                          } catch (error) {
+                            showToast(error.message || 'Could not save role', 'error', 'Role Update Failed');
+                          }
                         }}
                         className="border border-slate-300 rounded px-2 py-1 text-xs font-semibold"
                       >
