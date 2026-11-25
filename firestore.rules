@@ -17,8 +17,15 @@ service cloud.firestore {
             : 'applicant');
     }
 
+    // Bootstrap administrators can manage Firestore roles before custom
+    // claims have been provisioned for their account.
+    function isBootstrapAdmin() {
+      return isSignedIn()
+        && request.auth.token.email in ['crsadmin@gmail.com', 'admin@example.gov'];
+    }
+
     function isAdmin() {
-      return isSignedIn() && currentRole() == 'admin';
+      return isBootstrapAdmin() || (isSignedIn() && currentRole() == 'admin');
     }
 
     function isPersonnel() {
@@ -42,6 +49,12 @@ service cloud.firestore {
       allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role)
                     || isAdmin();
       allow delete: if isAdmin();
+    }
+
+    // Admin-managed email-to-role lookup used when provisioning accounts.
+    match /user_roles_by_email/{emailKey} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
     }
 
     // =====================================================================

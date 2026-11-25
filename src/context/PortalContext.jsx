@@ -1557,6 +1557,8 @@ export function PortalProvider({ children }) {
           );
           if (existingInList?.id) {
             uid = existingInList.id;
+          } else {
+            throw new Error('This email already has a Firebase Auth account. Sign in with it or use a different email.');
           }
         } else if (err?.code === 'auth/weak-password') {
           throw new Error('Password must be at least 6 characters long.');
@@ -1574,7 +1576,6 @@ export function PortalProvider({ children }) {
       email: (newUser.email || '').trim(),
       phone_number: (newUser.phone_number || '').trim(),
       role: assignedRole,
-      password: newUser.password || undefined,
       isActive: true,
       privacyConsentAt: new Date().toISOString(),
     };
@@ -1588,14 +1589,19 @@ export function PortalProvider({ children }) {
     ]);
     const sdk = getFirebaseSdk();
     if (sdk?.db) {
-      await Promise.all([
-        setDoc(doc(sdk.db, 'users', record.id), record, { merge: true }).catch(() => {}),
-        cleanEmail
-          ? setDoc(doc(sdk.db, 'user_roles_by_email', emailKey), record, {
-              merge: true,
-            }).catch(() => {})
-          : Promise.resolve(),
-      ]);
+      try {
+        await Promise.all([
+          setDoc(doc(sdk.db, 'users', record.uid), record, { merge: true }),
+          cleanEmail
+            ? setDoc(doc(sdk.db, 'user_roles_by_email', emailKey), record, { merge: true })
+            : Promise.resolve(),
+        ]);
+      } catch (error) {
+        setUsersList((prev) => prev.filter((u) => u.id !== record.id));
+        throw new Error(
+          `The Firebase Auth account was created, but its Firestore role profile could not be saved: ${error?.message || 'permission denied.'}`
+        );
+      }
     }
     if (sdk?.rtdb && sdk?.auth?.currentUser) {
       Promise.all([
