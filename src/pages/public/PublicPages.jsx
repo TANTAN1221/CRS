@@ -10,7 +10,6 @@ import {
   ShieldCheck,
   Sparkles,
   Lock,
-  Clock,
   Search,
   ChevronRight,
   CalendarCheck,
@@ -42,7 +41,7 @@ export function LandingPage() {
       ? '/admin/dashboard'
       : profile?.role === 'personnel'
       ? '/personnel/dashboard'
-      : '/applicant/dashboard';
+      : '/applicant/services';
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
@@ -97,8 +96,8 @@ export function LandingPage() {
           className="relative bg-gradient-to-r from-[#071738] via-[#0b214d] to-[#122d66] text-white overflow-hidden"
         >
           <div className="absolute inset-0 bg-grid-pattern opacity-10" />
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            <div className="lg:col-span-7 space-y-6">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 relative z-10">
+            <div className="max-w-4xl space-y-6">
               <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-blue-200 font-medium">
                 <span className="accent-bar" />
                 OFFICIAL CIVIL REGISTRY SERVICES
@@ -113,25 +112,37 @@ export function LandingPage() {
               </p>
 
               <div className="pt-4 flex flex-wrap items-center gap-4">
-                <button
-                  type="button"
-                  onClick={() => openAuthModal('register')}
-                  className="px-7 py-3.5 bg-white text-slate-900 font-semibold rounded-md hover:bg-slate-100 transition-colors shadow-lg text-sm"
-                >
-                  Create Citizen Portal
-                </button>
-                <Link
-                  to={dashboardPath}
-                  className="px-7 py-3.5 border border-white/40 text-white font-semibold rounded-md hover:bg-white/10 transition-colors text-sm"
-                >
-                  Enter Citizen Portal
-                </Link>
+                {profile ? (
+                  <Link
+                    to={dashboardPath}
+                    className="px-7 py-3.5 bg-white text-slate-900 font-semibold rounded-md hover:bg-slate-100 transition-colors shadow-lg text-sm"
+                  >
+                    Go to My Portal
+                  </Link>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => openAuthModal('register')}
+                      className="px-7 py-3.5 bg-white text-slate-900 font-semibold rounded-md hover:bg-slate-100 transition-colors shadow-lg text-sm"
+                    >
+                      Create Citizen Account
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openAuthModal('login')}
+                      className="px-7 py-3.5 border border-white/40 text-white font-semibold rounded-md hover:bg-white/10 transition-colors text-sm"
+                    >
+                      Sign In to Portal
+                    </button>
+                  </>
+                )}
               </div>
 
               <div className="pt-4 flex flex-wrap items-center gap-6 text-xs text-blue-200/90">
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-300" />
-                  <span>Auto-Fill Forms by Scanning ID</span>
+                  <span>AI-assisted Document Comparison</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-300" />
@@ -144,32 +155,6 @@ export function LandingPage() {
               </div>
             </div>
 
-            <div className="lg:col-span-5 relative">
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/10">
-                <img
-                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1000&q=80"
-                  alt="Civil Registry Consultation"
-                  width={1000}
-                  height={750}
-                  loading="eager"
-                  className="w-full h-80 sm:h-96 object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0e2756]/80 via-transparent to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md p-4 rounded-xl shadow-lg text-slate-800 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-[#0e2756] text-white flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 text-xs">
-                    <div className="font-bold text-slate-900 text-sm">
-                      AI OCR Scan & Automated Form Inputs
-                    </div>
-                    <div className="text-slate-500">
-                      Scan your ID or certificate on mobile or web to auto-populate required fields
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -185,7 +170,7 @@ export function LandingPage() {
                 Available Civil Registry Services
               </h2>
               <p className="text-slate-600 text-sm mt-3 leading-relaxed">
-                Pre-screen your documents online and reserve a counter appointment. All statutory fees displayed below are informational only and paid directly at the Civil Registry Cashier Counter under Republic Act 3753.
+                Pre-screen your documents online and reserve a counter appointment. Reminder: Payment will be made at the counter during document verification and applicant appearance.
               </p>
             </div>
 
@@ -201,7 +186,7 @@ export function LandingPage() {
                         {s.code}
                       </span>
                       <span className="text-[11px] text-amber-800 bg-amber-50 px-2 py-0.5 rounded font-semibold">
-                        Counter Payment Only
+                        Counter Appearance
                       </span>
                     </div>
                     <h3 className="font-serif font-bold text-lg text-slate-900 group-hover:text-[#0e2756]">
@@ -213,10 +198,10 @@ export function LandingPage() {
                   <div className="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between">
                     <div>
                       <div className="text-[11px] text-slate-400 uppercase tracking-wider">
-                        Informational Fee
+                        Processing Time
                       </div>
                       <div className="text-xs font-bold text-slate-900">
-                        {formatCurrency(s.fee_amount)} • {s.processing_days} days
+                        {s.processing_days} Working Days
                       </div>
                     </div>
                     <button
@@ -261,7 +246,7 @@ export function LoginPage() {
       showToast(`Welcome back, ${user.first_name}!`, 'success', 'Signed In');
       if (user.role === 'admin') navigate('/admin/dashboard');
       else if (user.role === 'personnel') navigate('/personnel/dashboard');
-      else navigate('/applicant/dashboard');
+      else navigate('/applicant/services');
     } catch (err) {
       showToast(err.message, 'error', 'Authentication Error');
     }
@@ -378,7 +363,7 @@ export function RegisterPage() {
     showToast('Account created and ready!', 'success', 'Registered');
     if (created?.role === 'admin') navigate('/admin/dashboard');
     else if (created?.role === 'personnel') navigate('/personnel/dashboard');
-    else navigate('/applicant/dashboard');
+    else navigate('/applicant/services');
   };
 
   return (

@@ -40,15 +40,15 @@ import CitizenAuthModal from './CitizenAuthModal';
 
 export function StatusBadge({ status }) {
   const map = {
-    submitted: 'bg-blue-50 text-blue-700 border-blue-200',
-    pre_screened: 'bg-sky-50 text-sky-700 border-sky-200',
-    under_review: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    ready_for_appointment: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    returned: 'bg-amber-50 text-amber-700 border-amber-200',
-    reserved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    checked_in: 'bg-blue-50 text-blue-700 border-blue-200',
-    cancelled: 'bg-slate-100 text-slate-600 border-slate-300',
+    submitted: 'bg-blue-50 text-[#0e2756] border-blue-200',
+    pre_screened: 'bg-blue-50 text-[#0e2756] border-blue-200',
+    under_review: 'bg-amber-50 text-amber-800 border-amber-200',
+    ready_for_appointment: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    completed: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    returned: 'bg-amber-50 text-amber-800 border-amber-200',
+    reserved: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    checked_in: 'bg-blue-50 text-[#0e2756] border-blue-200',
+    cancelled: 'bg-slate-100 text-slate-700 border-slate-300',
     no_show: 'bg-rose-50 text-rose-700 border-rose-200',
   };
   const labelMap = {
@@ -126,8 +126,8 @@ export default function PortalLayout({ children }) {
       navigate('/personnel/dashboard', { replace: true });
     } else if (profile.role === 'admin' && path.startsWith('/applicant') && path !== '/applicant/notifications') {
       navigate('/admin/dashboard', { replace: true });
-    } else if (profile.role === 'applicant' && (path.startsWith('/admin') || path.startsWith('/personnel'))) {
-      navigate('/applicant/dashboard', { replace: true });
+    } else if (profile.role === 'applicant' && (path.startsWith('/admin') || path.startsWith('/personnel') || path === '/applicant/dashboard')) {
+      navigate('/applicant/services', { replace: true });
     }
   }, [profile?.role, location.pathname, navigate]);
 
@@ -140,25 +140,39 @@ export default function PortalLayout({ children }) {
       ? [
           { to: '/admin/dashboard', label: 'Overview', icon: LayoutDashboard },
           { to: '/admin/users', label: 'Users & RBAC', icon: Users },
-          { to: '/admin/services', label: 'Services', icon: FileCog },
-          { to: '/admin/requirements', label: 'Checklists', icon: CheckSquare },
+          {
+            to: '/admin/services',
+            label: 'Services & Checklists',
+            icon: FileCog,
+            matchPaths: ['/admin/services', '/admin/requirements'],
+          },
           { to: '/admin/appointments', label: 'Schedules', icon: Calendar },
           { to: '/admin/reports', label: 'Audit Logs', icon: FolderOpen },
         ]
       : role === 'personnel'
       ? [
-          { to: '/personnel/dashboard', label: 'Queue', icon: LayoutDashboard },
-          { to: '/personnel/applications', label: 'Requests', icon: FolderOpen },
-          { to: '/personnel/document-verification', label: 'Review Forms', icon: CheckSquare },
-          { to: '/personnel/tracking', label: 'Form Tracker', icon: PackageCheck },
+          {
+            to: '/personnel/dashboard',
+            label: 'Requests Queue',
+            icon: LayoutDashboard,
+            matchPaths: ['/personnel/dashboard', '/personnel/applications', '/personnel/tracking'],
+          },
+          { to: '/personnel/document-verification', label: 'Verify Documents', icon: CheckSquare },
           { to: '/personnel/appointments', label: 'Appointments', icon: CalendarCheck },
         ]
       : [
-          { to: '/applicant/dashboard', label: 'Home', icon: Home },
-          { to: '/applicant/services', label: 'Services', icon: BookOpen },
-          { to: '/applicant/application', label: 'Apply (AI)', icon: FilePlus },
-          { to: '/applicant/document-tracking', label: 'Track Form', icon: Search },
-          { to: '/applicant/appointments', label: 'Schedule', icon: Calendar },
+          {
+            to: '/applicant/services',
+            label: 'Services',
+            icon: BookOpen,
+            matchPaths: ['/applicant/services', '/applicant/application', '/applicant/dashboard'],
+          },
+          {
+            to: '/applicant/document-tracking',
+            label: 'My Progress',
+            icon: Search,
+            matchPaths: ['/applicant/document-tracking', '/applicant/appointments'],
+          },
         ];
 
   return (
@@ -199,7 +213,9 @@ export default function PortalLayout({ children }) {
 
             <nav className="hidden lg:flex items-center gap-4 text-xs font-semibold text-slate-600 ml-4">
               {navLinks.map((item) => {
-                const active = location.pathname.startsWith(item.to);
+                const active = item.matchPaths
+                  ? item.matchPaths.some((p) => location.pathname.startsWith(p))
+                  : location.pathname.startsWith(item.to);
                 return (
                   <Link
                     key={item.to}
@@ -317,7 +333,9 @@ export default function PortalLayout({ children }) {
                 </div>
                 {navLinks.map((item) => {
                   const Icon = item.icon;
-                  const active = location.pathname.startsWith(item.to);
+                  const active = item.matchPaths
+                    ? item.matchPaths.some((p) => location.pathname.startsWith(p))
+                    : location.pathname.startsWith(item.to);
                   return (
                     <Link
                       key={item.to}
@@ -367,11 +385,23 @@ export default function PortalLayout({ children }) {
         © 2026 Office of the City Civil Registrar • Official Civil Registry Services Portal
       </footer>
 
-      {/* Mobile Fixed 5-Tab Bottom Navigation Bar (< 1024px) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-lg grid grid-cols-5 py-1 px-1 safe-bottom-nav no-print">
+      {/* Mobile Fixed Bottom Navigation Bar (< 1024px) */}
+      <nav
+        className={`lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-lg grid ${
+          navLinks.slice(0, 5).length === 2
+            ? 'grid-cols-2'
+            : navLinks.slice(0, 5).length === 3
+            ? 'grid-cols-3'
+            : navLinks.slice(0, 5).length === 4
+            ? 'grid-cols-4'
+            : 'grid-cols-5'
+        } py-1 px-1 safe-bottom-nav no-print`}
+      >
         {navLinks.slice(0, 5).map((item) => {
           const Icon = item.icon;
-          const active = location.pathname.startsWith(item.to);
+          const active = item.matchPaths
+            ? item.matchPaths.some((p) => location.pathname.startsWith(p))
+            : location.pathname.startsWith(item.to);
           return (
             <Link
               key={item.to}
@@ -381,7 +411,7 @@ export default function PortalLayout({ children }) {
               }`}
             >
               <Icon className="w-4 h-4" />
-              <span className="text-[10px] mt-0.5 truncate max-w-[68px]">{item.label}</span>
+              <span className="text-[10px] mt-0.5 truncate max-w-[84px]">{item.label}</span>
             </Link>
           );
         })}

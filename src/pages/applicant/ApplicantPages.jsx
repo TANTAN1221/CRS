@@ -36,7 +36,8 @@ import { usePortal } from '../../context/PortalContext';
 import { LIFECYCLE_STAGE_MAP } from '../../services/firebase';
 
 export function ApplicantDashboardPage() {
-  const { profile, applications, appointments, notifications } = usePortal();
+  const { profile, services, requirements, applications, appointments, notifications } =
+    usePortal();
   const navigate = useNavigate();
   const [quickRef, setQuickRef] = useState('TRK-CRS-2026-0814');
 
@@ -62,24 +63,66 @@ export function ApplicantDashboardPage() {
           <h1 className="font-serif text-2xl sm:text-3xl font-bold">
             Welcome, {profile?.first_name || 'Citizen'}
           </h1>
-          <p className="text-xs sm:text-sm text-blue-100/80 max-w-xl leading-relaxed">
-            Scan your documents with AI to auto-fill applications, monitor 5-stage verification progress, and manage your reserved counter appointments.
+          <p className="text-xs sm:text-sm text-blue-100/90 max-w-xl leading-relaxed">
+            Request your civil registry documents online, check if our staff has reviewed your form, and choose your office visit date.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <Link
             to="/applicant/application"
-            className="px-5 py-2.5 bg-white text-slate-900 font-semibold text-xs rounded-md hover:bg-slate-100 shadow flex items-center gap-2"
+            className="px-5 py-3 bg-white text-slate-900 font-bold text-xs rounded-lg hover:bg-slate-100 shadow flex items-center gap-2"
           >
-            <Plus className="w-4 h-4" /> New Application (AI Scan)
+            <Plus className="w-4 h-4 text-[#0e2756]" /> Request a Document
           </Link>
           <Link
             to="/applicant/appointments"
-            className="px-5 py-2.5 border border-white/40 text-white font-semibold text-xs rounded-md hover:bg-white/10 flex items-center gap-2"
+            className="px-5 py-3 border border-white/40 text-white font-semibold text-xs rounded-lg hover:bg-white/10 flex items-center gap-2"
           >
-            <Calendar className="w-4 h-4" /> Book Counter Slot
+            <Calendar className="w-4 h-4" /> Schedule Office Visit
           </Link>
+        </div>
+      </div>
+
+      {/* Plain-Language 3-Step Guide for Non-Techy Applicants & Elders */}
+      <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-2xs">
+        <div className="text-xs font-bold text-[#0e2756] uppercase tracking-wider mb-3">
+          How to Get Your Document in 3 Simple Steps (Paano Kumuha ng Dokumento)
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3">
+            <span className="w-7 h-7 rounded-full bg-[#0e2756] text-white font-bold flex items-center justify-center flex-shrink-0">
+              1
+            </span>
+            <div>
+              <div className="font-bold text-slate-900">Fill Out Form & Attach ID</div>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                Tap <strong>Request a Document</strong>, enter your details (or scan your ID), and attach clear photos of your required documents.
+              </p>
+            </div>
+          </div>
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3">
+            <span className="w-7 h-7 rounded-full bg-[#0e2756] text-white font-bold flex items-center justify-center flex-shrink-0">
+              2
+            </span>
+            <div>
+              <div className="font-bold text-slate-900">Wait for Staff Review</div>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                Our Civil Registry staff will check your uploaded documents online so you won't have to go back and forth to the office.
+              </p>
+            </div>
+          </div>
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3">
+            <span className="w-7 h-7 rounded-full bg-[#0e2756] text-white font-bold flex items-center justify-center flex-shrink-0">
+              3
+            </span>
+            <div>
+              <div className="font-bold text-slate-900">Visit Counter & Pay in Person</div>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                Come on your chosen appointment date, bring your original ID and documents for verification, and pay at the counter.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -114,7 +157,7 @@ export function ApplicantDashboardPage() {
         </div>
 
         <div className="bg-white p-3.5 sm:p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-blue-50 text-[#0e2756] flex items-center justify-center flex-shrink-0">
             <Calendar className="w-5 h-5" aria-hidden="true" />
           </div>
           <div className="min-w-0">
@@ -139,6 +182,74 @@ export function ApplicantDashboardPage() {
               {unreadCount}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Offered Civil Registry Services Right on the Applicant Home / Dashboard */}
+      <div className="bg-white rounded-xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="accent-bar-navy" />
+              <h2 className="font-serif text-lg font-bold text-slate-900">
+                Available Civil Registry Services
+              </h2>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Tap any service below to start your document request and view its checklist
+            </p>
+          </div>
+          <Link
+            to="/applicant/services"
+            className="text-xs font-semibold text-[#0e2756] hover:underline flex items-center gap-1 self-start sm:self-auto"
+          >
+            View Full Checklists <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {services.map((s) => {
+            const reqList = requirements[s.id] || [];
+            return (
+              <div
+                key={s.id}
+                className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 hover:border-[#0e2756] transition-all flex flex-col justify-between space-y-3 text-xs"
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono font-bold text-[11px] px-2 py-0.5 rounded bg-blue-50 text-[#0e2756] border border-blue-200">
+                      {s.code}
+                    </span>
+                    <span className="text-[11px] font-semibold text-slate-600">
+                      {s.processing_days} Days
+                    </span>
+                  </div>
+                  <h3 className="font-serif font-bold text-sm text-slate-900">
+                    {s.name}
+                  </h3>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    {s.description}
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-slate-200 space-y-2.5">
+                  <div className="flex items-center justify-between text-[11px] text-slate-600">
+                    <span>Required Checklist:</span>
+                    <span className="font-bold text-slate-900">
+                      {reqList.length} Items
+                    </span>
+                  </div>
+                  <Link
+                    to={`/applicant/application?service=${s.id}`}
+                    className="w-full py-2.5 px-3 bg-[#0e2756] hover:bg-[#122850] text-white rounded-lg font-semibold flex items-center justify-center gap-1.5 shadow-2xs"
+                  >
+                    <span>Request This Document</span>
+                    <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -189,14 +300,14 @@ export function ApplicantDashboardPage() {
                       {app.service_name}
                     </div>
                     <div className="text-[11px] text-slate-500 mt-0.5">
-                      Counter Fee: {formatCurrency(app.fee_total)} (Paid at Counter)
+                      Payment at Counter Upon Document Verification & Appearance
                     </div>
                   </div>
                   <Link
                     to={`/applicant/document-tracking?ref=${app.reference_no}`}
                     className="w-full py-2.5 px-3 bg-slate-100 hover:bg-blue-50 text-[#0e2756] rounded-lg text-xs font-bold flex items-center justify-center gap-1.5"
                   >
-                    Track 5-Stage Progress <ChevronRight className="w-4 h-4" />
+                    View Request Progress <ChevronRight className="w-4 h-4" />
                   </Link>
                 </div>
               ))
@@ -209,7 +320,7 @@ export function ApplicantDashboardPage() {
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase">
                 <tr>
                   <th className="px-5 py-3">Reference No</th>
-                  <th className="px-5 py-3">Service & Informational Fee</th>
+                  <th className="px-5 py-3">Civil Registry Service</th>
                   <th className="px-5 py-3">Status</th>
                   <th className="px-5 py-3 text-right">Track</th>
                 </tr>
@@ -218,7 +329,7 @@ export function ApplicantDashboardPage() {
                 {userApps.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-5 py-8 text-center text-slate-400">
-                      No applications submitted yet. Click "New Application (AI Scan)" above to test!
+                      No document requests submitted yet. Tap "Request a Document" above to start.
                     </td>
                   </tr>
                 ) : (
@@ -230,7 +341,7 @@ export function ApplicantDashboardPage() {
                       <td className="px-5 py-4">
                         <div className="font-medium text-slate-900">{app.service_name}</div>
                         <div className="text-[11px] text-slate-400">
-                          Counter Fee: {formatCurrency(app.fee_total)} (Paid at Counter)
+                          Payment at Counter Upon Document Verification & Appearance
                         </div>
                       </td>
                       <td className="px-5 py-4">
@@ -302,29 +413,40 @@ export function ApplicantDashboardPage() {
 }
 
 export function ApplicantServicesPage() {
-  const { services, requirements } = usePortal();
+  const { profile, services, requirements } = usePortal();
+  const [hasFatherListed, setHasFatherListed] = useState('yes'); // 'yes' | 'no'
 
   return (
     <PortalLayout>
-      <div className="border-b border-slate-200 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-1.5 text-xs uppercase tracking-wider text-[#0e2756] font-bold mb-1">
-            <span className="accent-bar-navy" />
-            OFFICIAL CITIZEN CATALOGUE
+      {/* Welcome Hero Banner on the Services Tab */}
+      <div className="bg-navy-pattern text-white rounded-2xl p-6 sm:p-8 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-1.5 text-xs uppercase tracking-wider text-blue-200 font-semibold">
+            <span className="accent-bar" />
+            CITIZEN SERVICES & DOCUMENT CHECKLISTS
           </div>
-          <h1 className="font-serif text-3xl font-bold text-slate-900">
-            Civil Registry Services & Requirements
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold">
+            Welcome, {profile?.first_name || 'Citizen'}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Review required documents, turnaround times, and informational counter fees (RA 3753).
+          <p className="text-xs sm:text-sm text-blue-100/90 max-w-xl leading-relaxed">
+            Select a civil registry service below to view its required documents and start your online request. Reminder: Payment will be made at the counter during document verification and applicant appearance.
           </p>
         </div>
-        <Link
-          to="/applicant/application"
-          className="px-5 py-2.5 bg-[#0e2756] text-white text-xs font-semibold rounded-md hover:bg-[#122850] shadow flex items-center gap-2 self-start"
-        >
-          <Plus className="w-4 h-4" /> Start Application with AI Scan
-        </Link>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to="/applicant/application"
+            className="px-5 py-3 bg-white text-slate-900 font-bold text-xs rounded-lg hover:bg-slate-100 shadow flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4 text-[#0e2756]" /> Request a Document
+          </Link>
+          <Link
+            to="/applicant/appointments"
+            className="px-5 py-3 border border-white/40 text-white font-semibold text-xs rounded-lg hover:bg-white/10 flex items-center gap-2"
+          >
+            <Calendar className="w-4 h-4" /> Schedule Office Visit
+          </Link>
+        </div>
       </div>
 
       <div className="space-y-6">
@@ -342,7 +464,7 @@ export function ApplicantServicesPage() {
                       {s.code}
                     </span>
                     <span className="text-[11px] text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded">
-                      Informational Fee • Payable at Counter Only
+                      Payment at Counter Upon Verification & Appearance
                     </span>
                   </div>
                   <h3 className="font-serif font-bold text-xl text-slate-900 mt-1">{s.name}</h3>
@@ -352,14 +474,6 @@ export function ApplicantServicesPage() {
                 <div className="flex flex-wrap items-center justify-between sm:justify-start gap-4 sm:gap-6 lg:border-l lg:border-slate-200 lg:pl-6 flex-shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
                   <div>
                     <div className="text-[11px] text-slate-400 uppercase font-semibold">
-                      Counter Fee
-                    </div>
-                    <div className="text-base sm:text-lg font-bold text-slate-900 tabular-nums">
-                      {formatCurrency(s.fee_amount)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-slate-400 uppercase font-semibold">
                       Turnaround
                     </div>
                     <div className="text-base sm:text-lg font-bold text-slate-900">
@@ -367,7 +481,11 @@ export function ApplicantServicesPage() {
                     </div>
                   </div>
                   <Link
-                    to={`/applicant/application?service=${s.id}`}
+                    to={
+                      s.id === 'birth_cert' || s.id === 'delayed_birth'
+                        ? `/applicant/application?service=${s.id}&hasFather=${hasFatherListed}`
+                        : `/applicant/application?service=${s.id}`
+                    }
                     className="w-full sm:w-auto justify-center px-5 py-2.5 bg-[#0e2756] text-white text-xs font-semibold rounded-md hover:bg-[#122850] shadow flex items-center gap-1.5"
                   >
                     Apply Online <ArrowRight className="w-3.5 h-3.5" />
@@ -375,32 +493,99 @@ export function ApplicantServicesPage() {
                 </div>
               </div>
 
+              {/* Father Option Selector in Birth Registration Services */}
+              {(s.id === 'birth_cert' || s.id === 'delayed_birth') && (
+                <div className="mt-4 p-4 bg-blue-50/70 border border-blue-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div>
+                    <div className="font-bold text-[#0e2756]">
+                      Is there a Father listed / acknowledged on this Birth Registration?
+                    </div>
+                    <p className="text-[11px] text-slate-600 mt-0.5">
+                      Select an option below so the system knows whether both Mother’s and Father’s Valid IDs are required or only the Mother’s Valid ID applies.
+                    </p>
+                  </div>
+                  <select
+                    value={hasFatherListed}
+                    onChange={(e) => setHasFatherListed(e.target.value)}
+                    className="form-input text-xs bg-white sm:w-80 flex-shrink-0"
+                  >
+                    <option value="yes">
+                      Yes — Father is listed (Both Parents’ Valid IDs required)
+                    </option>
+                    <option value="no">
+                      No Father listed / Solo Mother (Only Mother’s Valid ID required)
+                    </option>
+                  </select>
+                </div>
+              )}
+
               <div className="pt-5">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3 flex items-center gap-1.5">
                   <CheckSquare className="w-3.5 h-3.5 text-[#0e2756]" />
                   Required Documents Checklist (PDF, JPG, PNG • Max 10 MB)
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {reqs.map((r) => (
-                    <div
-                      key={r.id}
-                      className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs"
-                    >
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className="font-semibold text-slate-800">{r.name}</span>
-                        <span
-                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                            r.is_mandatory
-                              ? 'text-rose-600 bg-rose-50'
-                              : 'text-slate-500 bg-slate-200'
-                          }`}
-                        >
-                          {r.is_mandatory ? 'Mandatory' : 'Optional'}
-                        </span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {reqs.map((r) => {
+                    const isBirthService =
+                      s.id === 'birth_cert' || s.id === 'delayed_birth';
+                    const isSkippedWhenNoFather =
+                      isBirthService &&
+                      hasFatherListed === 'no' &&
+                      ['parents_married', 'parents_unmarried_father_surname', 'parents_marriage_or_ausf'].includes(
+                        r.conditionKey
+                      );
+
+                    return (
+                      <div
+                        key={r.id}
+                        className={`border rounded-lg p-3.5 text-xs space-y-1.5 ${
+                          isSkippedWhenNoFather
+                            ? 'bg-slate-100/80 border-slate-200 opacity-75'
+                            : 'bg-slate-50 border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-bold text-slate-900">
+                            {r.id === 'req-bt-2'
+                              ? hasFatherListed === 'no'
+                                ? 'Valid ID of Mother (1 Document Required — No Father Listed)'
+                                : 'Valid IDs of Both Parents (2 Documents Required: Mother & Father)'
+                              : r.name}
+                          </span>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded flex-shrink-0 ${
+                              isSkippedWhenNoFather
+                                ? 'text-slate-600 bg-slate-200'
+                                : r.is_conditional
+                                ? 'text-amber-900 bg-amber-100 border border-amber-300'
+                                : r.is_mandatory
+                                ? 'text-rose-700 bg-rose-50 border border-rose-200'
+                                : 'text-slate-600 bg-slate-200'
+                            }`}
+                          >
+                            {isSkippedWhenNoFather
+                              ? 'Does Not Apply'
+                              : r.is_conditional
+                              ? 'Conditional'
+                              : r.is_mandatory
+                              ? 'Required'
+                              : 'Optional'}
+                          </span>
+                        </div>
+                        {r.condition && (
+                          <div className="text-[11px] font-semibold text-[#0e2756] bg-blue-50/80 border border-blue-200 rounded px-2.5 py-1">
+                            Condition:{' '}
+                            {r.id === 'req-bt-2' && hasFatherListed === 'no'
+                              ? 'Only the Mother’s Valid Government ID is required because you selected that no father is listed.'
+                              : isSkippedWhenNoFather
+                              ? 'Does not apply because no father is listed on the birth record.'
+                              : r.condition}
+                          </div>
+                        )}
+                        <p className="text-[11px] text-slate-600">{r.description}</p>
                       </div>
-                      <p className="text-[11px] text-slate-500">{r.description}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -494,13 +679,13 @@ export function ApplicantAppointmentsPage() {
         <div>
           <div className="inline-flex items-center gap-1.5 text-xs uppercase tracking-wider text-[#0e2756] font-bold mb-1">
             <span className="accent-bar-navy" />
-            REAL-TIME VISUAL CALENDAR & SLOT SCHEDULER
+            OFFICE VISIT APPOINTMENT SCHEDULER
           </div>
           <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900">
-            Book & Manage Office Counter Appointments
+            Schedule Your Office Visit
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Select an available date on the calendar below, pick an open 30-minute time window, and reserve your counter visit in real time.
+            Tap an available green date on the calendar below, choose your preferred time window, and confirm your office visit.
           </p>
         </div>
       </div>
@@ -545,6 +730,21 @@ export function ApplicantAppointmentsPage() {
           </div>
 
           <form onSubmit={handleBookOrReschedule} className="space-y-4">
+            {/* Personal Appointment Policy Badge */}
+            <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-3 space-y-1">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-[#0e2756]">
+                Personal Appointment Holder (For Yourself Only)
+              </div>
+              <div className="font-bold text-slate-900 text-xs">
+                {[profile?.first_name, profile?.middle_name, profile?.last_name]
+                  .filter(Boolean)
+                  .join(' ') || 'Signed-In Applicant'}
+              </div>
+              <div className="text-[11px] text-slate-600">
+                {profile?.email || 'Personal Account'} • Appointments are strictly for the account holder and cannot be booked for other people.
+              </div>
+            </div>
+
             {!rescheduleTarget && (
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
@@ -685,8 +885,8 @@ export function ApplicantAppointmentsPage() {
                       <li>
                         Reference Code <strong>{apt.reference_no}</strong> (Phone screenshot or printout)
                       </li>
-                      <li>Original Valid ID (Senior Citizen ID, PhilSys ID, or Government ID)</li>
-                      <li>Exact cash for Cashier Counter payment (RA 3753)</li>
+                      <li>Original Valid ID and supporting documents for counter verification</li>
+                      <li>Payment at the counter upon document verification and personal appearance</li>
                     </ul>
                   </div>
                 </div>
@@ -747,8 +947,19 @@ export function ApplicantAppointmentsPage() {
 }
 
 export function DocumentTrackingPage() {
-  const { profile, applications } = usePortal();
+  const {
+    profile,
+    applications,
+    appointments,
+    rescheduleAppointment,
+    updateAppointmentStatus,
+    replaceApplicationDocument,
+    getTimeSlotsForDate,
+    getDateAvailabilitySummary,
+    showToast,
+  } = usePortal();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [reuploadingDocKey, setReuploadingDocKey] = useState(null);
 
   // Only available inside Citizen Portal (and viewable by Personnel)
   const visibleApps =
@@ -765,6 +976,30 @@ export function DocumentTrackingPage() {
     visibleApps.find((a) => a.reference_no.toUpperCase() === cleanRef) ||
     visibleApps[0] ||
     null;
+
+  // Find the Office Visit Appointment linked to this application (or the applicant's latest active visit)
+  const userApts = appointments.filter(
+    (a) => !profile || a.applicant_id === profile.id
+  );
+  const linkedApt =
+    (app &&
+      appointments.find(
+        (a) =>
+          a.applicationId === app.reference_no ||
+          a.reference_no === app.appointmentRef
+      )) ||
+    userApts.find((a) => a.status !== 'cancelled') ||
+    userApts[0] ||
+    null;
+
+  const tomorrow = new Date(Date.now() + 24 * 3600 * 1000).toISOString().split('T')[0];
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [newVisitDate, setNewVisitDate] = useState(
+    linkedApt?.appointment_date || tomorrow
+  );
+  const [newVisitSlot, setNewVisitSlot] = useState(
+    linkedApt?.time_slot || '09:30 AM - 10:00 AM'
+  );
 
   // Form-Filling Progress Completion Breakdown
   const details = app?.subject_details || {};
@@ -812,9 +1047,11 @@ export function DocumentTrackingPage() {
       ? 65
       : Math.round((completedFieldCount / formFieldsChecklist.length) * 100);
 
-  // Personnel Review Progress Breakdown
+  // 4-Stage Progress Including Office Visit & Release
   const reviewStepIndex =
-    app?.status === 'ready_for_appointment' || app?.status === 'completed'
+    app?.status === 'completed'
+      ? 4
+      : app?.status === 'ready_for_appointment'
       ? 3
       : app?.status === 'under_review' || app?.status === 'returned'
       ? 2
@@ -823,29 +1060,60 @@ export function DocumentTrackingPage() {
   const trackingSteps = [
     {
       num: 1,
-      title: '1. Form Filled & Submitted',
-      subtitle: 'Citizen completed form inputs & ID scan',
+      title: '1. Form & IDs Submitted',
+      subtitle: 'Applicant completed form & document uploads',
       done: reviewStepIndex >= 1,
       active: reviewStepIndex === 1,
     },
     {
       num: 2,
-      title: '2. Being Reviewed by Personnel',
+      title: '2. Personnel Document Review',
       subtitle: `Reviewer: ${app?.assignedOfficer || 'Civil Registry Personnel'}`,
       done: reviewStepIndex > 2,
       active: reviewStepIndex === 2,
     },
     {
       num: 3,
-      title: '3. Form Review Completed',
+      title: '3. Cleared for Office Visit',
       subtitle:
         app?.status === 'returned'
-          ? 'Returned by personnel for form correction'
-          : 'Form & attachments approved by personnel',
-      done: reviewStepIndex === 3 && app?.status !== 'returned',
+          ? 'Flagged by personnel for correction'
+          : linkedApt
+          ? `Visit: ${formatDate(linkedApt.appointment_date)} (${linkedApt.time_slot})`
+          : 'Ready for scheduled counter visit',
+      done: reviewStepIndex >= 3 && app?.status !== 'returned',
       active: reviewStepIndex === 3,
     },
+    {
+      num: 4,
+      title: '4. Counter Verification & Release',
+      subtitle: 'Personal appearance, payment at counter & document release',
+      done: reviewStepIndex === 4,
+      active: reviewStepIndex === 4,
+    },
   ];
+
+  const handleSaveReschedule = async () => {
+    if (!linkedApt) return;
+    const dateSummary = getDateAvailabilitySummary(newVisitDate);
+    const daySlots = getTimeSlotsForDate(newVisitDate);
+    const slotInfo = daySlots.find((s) => s.timeSlot === newVisitSlot);
+    if (!dateSummary.isOpen || slotInfo?.isFull) {
+      showToast('Please select an open date and available time slot.', 'warning', 'Slot Unavailable');
+      return;
+    }
+    try {
+      await rescheduleAppointment(linkedApt.id, newVisitDate, newVisitSlot);
+      showToast(
+        `Office visit rescheduled to ${formatDate(newVisitDate)} (${newVisitSlot})!`,
+        'success',
+        'Visit Rescheduled'
+      );
+      setRescheduleOpen(false);
+    } catch (err) {
+      showToast(err.message || 'Could not reschedule visit', 'error', 'Error');
+    }
+  };
 
   return (
     <PortalLayout>
@@ -853,20 +1121,20 @@ export function DocumentTrackingPage() {
         <div className="space-y-1.5">
           <div className="inline-flex items-center gap-1.5 text-xs uppercase tracking-wider text-blue-200 font-semibold">
             <span className="accent-bar" />
-            CITIZEN & PERSONNEL DOCUMENT TRACKER
+            SERVICE REQUEST & OFFICE VISIT PROGRESS
           </div>
           <h1 className="font-serif text-2xl sm:text-3xl font-bold">
-            Form Completion & Personnel Review Progress
+            My Request Progress & Scheduled Office Visit
           </h1>
           <p className="text-xs sm:text-sm text-blue-100/90 max-w-2xl">
-            Track the progress of your filled-out document form alongside real-time review updates from Civil Registry Personnel.
+            Track your submitted form, see if Civil Registry Personnel have reviewed or flagged your uploaded documents, and view or reschedule your office counter visit.
           </p>
         </div>
 
         {visibleApps.length > 0 && (
           <div className="w-full md:w-72">
             <label className="block text-[11px] font-bold uppercase tracking-wider text-blue-200 mb-1">
-              Select Submitted Document
+              Select Submitted Request
             </label>
             <select
               value={app?.reference_no || ''}
@@ -889,21 +1157,21 @@ export function DocumentTrackingPage() {
       {!app ? (
         <div className="bg-white rounded-xl border border-slate-200 p-10 text-center space-y-3">
           <div className="font-serif font-bold text-lg text-slate-900">
-            No Submitted Document Forms Yet
+            No Submitted Service Requests Yet
           </div>
           <p className="text-xs text-slate-600 max-w-md mx-auto">
-            Start a new application to fill out your certificate form (or auto-fill by scanning your ID) and track its review by Civil Registry Personnel here.
+            Go to the <strong>Services</strong> tab to choose a civil registry document, fill out your request form, and schedule your office visit.
           </p>
           <Link
-            to="/applicant/application"
+            to="/applicant/services"
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0e2756] text-white rounded-lg text-xs font-semibold"
           >
-            <Plus className="w-4 h-4" /> Fill Out Document Form Now
+            <Plus className="w-4 h-4" /> Go to Services
           </Link>
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Top Summary & 3-Stage Form + Personnel Review Stepper */}
+          {/* Top Summary & 4-Stage Service + Office Visit Stepper */}
           <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
               <div>
@@ -922,8 +1190,8 @@ export function DocumentTrackingPage() {
               <StatusBadge status={app.status} />
             </div>
 
-            {/* 3-Step Form & Review Progress Bar */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* 4-Step Progress Bar (Form -> Personnel Review -> Scheduled Visit -> Counter Release) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {trackingSteps.map((st) => (
                 <div
                   key={st.num}
@@ -955,21 +1223,21 @@ export function DocumentTrackingPage() {
             </div>
           </div>
 
-          {/* Side-by-Side: Left = Form Filling Progress | Right = Personnel Review Status */}
+          {/* 3-Section Progress Details: 1. Form Progress | 2. Personnel Review | 3. Scheduled Office Visit */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left Column: Progress of Filling Up of Document Form */}
+            {/* Left Column: 1. Form-Filling Progress */}
             <div className="lg:col-span-6 bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="font-serif font-bold text-base text-slate-900">
-                    1. Form-Filling Progress
+                    1. Form & Uploaded Documents
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Fields filled out by citizen / AI Document Scanner
+                    Details submitted with your civil registry request
                   </p>
                 </div>
                 <span className="text-xs font-bold font-mono px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 tabular-nums">
-                  {formFillPercent}% Filled
+                  {formFillPercent}% Complete
                 </span>
               </div>
 
@@ -999,9 +1267,128 @@ export function DocumentTrackingPage() {
                   </div>
                 ))}
               </div>
+
+              {/* Uploaded Document Files & Re-Upload Box if Flagged by Personnel */}
+              {(app.documents || []).length > 0 && (
+                <div className="pt-3 border-t border-slate-200 space-y-2.5 text-xs">
+                  <div className="font-bold text-slate-800 uppercase tracking-wider text-[11px]">
+                    Your Uploaded Requirement Files ({(app.documents || []).length})
+                  </div>
+                  <div className="space-y-2">
+                    {(app.documents || []).map((docItem, idx) => {
+                      const docKey = docItem.id || idx;
+                      const isFlagged = docItem.status === 'flagged_by_personnel';
+                      const isVerified = docItem.status === 'verified_by_personnel';
+                      const previewUrl = docItem.downloadUrl || docItem.previewDataUrl;
+
+                      return (
+                        <div
+                          key={docKey}
+                          className={`p-3 rounded-xl border space-y-2 ${
+                            isFlagged
+                              ? 'bg-amber-50/70 border-amber-300'
+                              : isVerified
+                              ? 'bg-emerald-50/40 border-emerald-200'
+                              : 'bg-slate-50 border-slate-200'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="font-bold text-slate-900 break-words">
+                                {docItem.requirementName || `Uploaded Document #${idx + 1}`}
+                              </div>
+                              <div className="text-[11px] font-mono text-slate-500 truncate">
+                                {docItem.fileName}
+                              </div>
+                            </div>
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded flex-shrink-0 ${
+                                isFlagged
+                                  ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                  : isVerified
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                  : 'bg-blue-50 text-[#0e2756] border border-blue-200'
+                              }`}
+                            >
+                              {isFlagged
+                                ? 'Flagged — Re-Upload Needed'
+                                : isVerified
+                                ? 'Verified by Personnel'
+                                : 'Submitted for Review'}
+                            </span>
+                          </div>
+
+                          {docItem.personnelFlagNote && (
+                            <p className="text-[11px] text-amber-900 font-medium">
+                              {docItem.personnelFlagNote}
+                            </p>
+                          )}
+
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                            {previewUrl && (
+                              <a
+                                href={previewUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[11px] font-semibold text-[#0e2756] hover:underline"
+                              >
+                                View Uploaded File
+                              </a>
+                            )}
+
+                            {isFlagged && (
+                              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0e2756] hover:bg-[#122850] text-white rounded-lg text-[11px] font-semibold cursor-pointer">
+                                <span>
+                                  {reuploadingDocKey === docKey
+                                    ? 'Uploading...'
+                                    : 'Upload Corrected File'}
+                                </span>
+                                <input
+                                  type="file"
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                  capture="environment"
+                                  disabled={reuploadingDocKey === docKey}
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    setReuploadingDocKey(docKey);
+                                    try {
+                                      await replaceApplicationDocument(
+                                        app.id,
+                                        docKey,
+                                        file
+                                      );
+                                      showToast(
+                                        `Re-uploaded "${
+                                          docItem.requirementName || file.name
+                                        }" for Civil Registry Personnel review!`,
+                                        'success',
+                                        'Replacement Uploaded'
+                                      );
+                                    } catch (err) {
+                                      showToast(
+                                        err.message || 'Upload failed',
+                                        'error',
+                                        'Upload Error'
+                                      );
+                                    } finally {
+                                      setReuploadingDocKey(null);
+                                    }
+                                  }}
+                                  className="hidden"
+                                />
+                              </label>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Right Column: Progress of Getting Reviewed by Civil Registry Personnel */}
+            {/* Right Column: 2. Personnel Review Status */}
             <div className="lg:col-span-6 bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
@@ -1036,7 +1423,7 @@ export function DocumentTrackingPage() {
                   <p className="font-medium text-slate-800 bg-white p-3 rounded-lg border border-slate-200">
                     {app.lastOfficerRemarks ||
                       app.statusHistory?.[0]?.remarks ||
-                      'Your filled-out form and attached ID scan are queued for review by Civil Registry Personnel.'}
+                      'Your filled-out form and attached documents are queued for review by Civil Registry Personnel.'}
                   </p>
                 </div>
               </div>
@@ -1073,6 +1460,154 @@ export function DocumentTrackingPage() {
               </div>
             </div>
           </div>
+
+          {/* 3. Integrated Scheduled Office Visit Section (Part of Service Progress) */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+              <div>
+                <h3 className="font-serif font-bold text-base sm:text-lg text-slate-900">
+                  3. Scheduled Office Visit & Counter Appearance
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Your office visit schedule for original document verification, payment at the counter, and personal appearance
+                </p>
+              </div>
+              {linkedApt && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="px-3.5 py-2 border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                  >
+                    <Printer className="w-3.5 h-3.5" /> Print Appointment Slip
+                  </button>
+                  {linkedApt.status === 'reserved' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewVisitDate(linkedApt.appointment_date || tomorrow);
+                        setNewVisitSlot(linkedApt.time_slot || '09:30 AM - 10:00 AM');
+                        setRescheduleOpen((prev) => !prev);
+                      }}
+                      className="px-3.5 py-2 bg-[#0e2756] hover:bg-[#122850] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                      {rescheduleOpen ? 'Close Calendar' : 'Reschedule Visit'}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {linkedApt ? (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start text-xs">
+                <div className="lg:col-span-6 bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-[#0e2756] bg-blue-50 px-2.5 py-1 rounded border border-blue-200">
+                      {linkedApt.reference_no}
+                    </span>
+                    <StatusBadge status={linkedApt.status} />
+                  </div>
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Visit Date:</span>
+                      <span className="font-bold text-slate-900">
+                        {formatDate(linkedApt.appointment_date)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Time Window:</span>
+                      <span className="font-bold text-[#0e2756]">{linkedApt.time_slot}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Counter Location:</span>
+                      <span className="font-semibold text-slate-900">
+                        {linkedApt.counter_no || 'Counter 02'} • Civil Registry Hall
+                      </span>
+                    </div>
+                  </div>
+                  {linkedApt.status === 'reserved' && (
+                    <div className="pt-3 border-t border-slate-200 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateAppointmentStatus(
+                            linkedApt.id,
+                            'cancelled',
+                            'Cancelled by applicant inside My Progress'
+                          )
+                        }
+                        className="text-rose-600 hover:underline font-semibold"
+                      >
+                        Cancel Scheduled Visit
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="lg:col-span-6 bg-blue-50/70 border border-blue-200 rounded-xl p-5 space-y-2.5">
+                  <div className="font-bold text-[#0e2756] uppercase tracking-wider text-[11px]">
+                    What to Bring on Your Office Visit (Ano ang Dadalhin):
+                  </div>
+                  <ul className="list-disc list-inside space-y-1.5 text-slate-700">
+                    <li>
+                      Reference Number <strong>{app.reference_no}</strong> (show on your phone or printed slip)
+                    </li>
+                    <li>
+                      Original Valid Government-Issued ID and original supporting documents for counter verification
+                    </li>
+                    <li>
+                      <strong>Payment at the counter</strong> upon document verification and personal appearance
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600">
+                No office visit schedule is attached to this request yet.
+              </div>
+            )}
+
+            {/* Inline Reschedule Calendar inside My Progress */}
+            {rescheduleOpen && linkedApt && (
+              <div className="pt-4 border-t border-slate-200 space-y-4 animate-fade-in">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <div className="font-bold text-xs text-slate-900 uppercase tracking-wider">
+                      Select New Office Visit Date & Time Window
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Pick an available green date and time window below, then tap Save New Schedule.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSaveReschedule}
+                    className="px-5 py-2.5 bg-[#0e2756] hover:bg-[#122850] text-white rounded-lg text-xs font-semibold shadow-xs self-start sm:self-auto"
+                  >
+                    Save New Schedule
+                  </button>
+                </div>
+
+                <VisualAppointmentCalendar
+                  selectedDate={newVisitDate}
+                  onSelectDate={(dateStr) => {
+                    setNewVisitDate(dateStr);
+                    const nextSlots = getTimeSlotsForDate(dateStr);
+                    const firstOpen =
+                      nextSlots.find((s) => !s.isFull)?.timeSlot ||
+                      nextSlots[0]?.timeSlot ||
+                      newVisitSlot;
+                    setNewVisitSlot(firstOpen);
+                  }}
+                  selectedSlot={newVisitSlot}
+                  onSelectSlot={setNewVisitSlot}
+                  mode="citizen"
+                  showTimeSlotPicker={true}
+                />
+              </div>
+            )}
+          </div>
         </div>
       )}
     </PortalLayout>
@@ -1094,9 +1629,9 @@ export function NotificationsPage() {
       await Notification.requestPermission();
     }
     showToast(
-      'Firebase Cloud Messaging (FCM) push notifications enabled for this device!',
+      'Device alerts enabled! You will be notified when staff updates your request.',
       'success',
-      'FCM Active'
+      'Alerts Enabled'
     );
   };
 
@@ -1108,7 +1643,7 @@ export function NotificationsPage() {
             Notifications & Status Alerts
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Real-time updates on your submitted document forms and scheduled counter visits.
+            Updates on your submitted document requests and scheduled office visits.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -1117,7 +1652,7 @@ export function NotificationsPage() {
             onClick={handleEnableFcm}
             className="px-4 py-2 bg-[#0e2756] text-white text-xs font-semibold rounded-md flex items-center gap-1.5"
           >
-            <Smartphone className="w-3.5 h-3.5" /> Enable Push Alerts
+            <Smartphone className="w-3.5 h-3.5" /> Turn On Phone Alerts
           </button>
           <button
             type="button"

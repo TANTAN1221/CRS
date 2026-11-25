@@ -50,15 +50,15 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/register.html" element={<RegisterPage />} />
 
-          {/* Citizen Applicant Routes */}
-          <Route path="/applicant/dashboard" element={<ApplicantDashboardPage />} />
-          <Route path="/applicant/dashboard.html" element={<ApplicantDashboardPage />} />
-          <Route path="/applicant/services" element={<ApplicantServicesPage />} />
-          <Route path="/applicant/services.html" element={<ApplicantServicesPage />} />
+          {/* Citizen Applicant Routes (Unified "Services" + "My Progress" with integrated Office Visit) */}
+          <Route path="/applicant/dashboard" element={<Navigate to="/applicant/services" replace />} />
+          <Route path="/applicant/dashboard.html" element={<Navigate to="/applicant/services" replace />} />
+          <Route path="/applicant/services" element={<ApplicationWizardPage />} />
+          <Route path="/applicant/services.html" element={<ApplicationWizardPage />} />
           <Route path="/applicant/application" element={<ApplicationWizardPage />} />
           <Route path="/applicant/application.html" element={<ApplicationWizardPage />} />
-          <Route path="/applicant/appointments" element={<ApplicantAppointmentsPage />} />
-          <Route path="/applicant/appointments.html" element={<ApplicantAppointmentsPage />} />
+          <Route path="/applicant/appointments" element={<Navigate to="/applicant/document-tracking" replace />} />
+          <Route path="/applicant/appointments.html" element={<Navigate to="/applicant/document-tracking" replace />} />
           <Route path="/applicant/document-tracking" element={<DocumentTrackingPage />} />
           <Route path="/applicant/document-tracking.html" element={<DocumentTrackingPage />} />
           <Route path="/applicant/notifications" element={<NotificationsPage />} />

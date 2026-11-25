@@ -88,7 +88,7 @@ export function AdminDashboardPage() {
         </div>
 
         <div className="bg-white p-3.5 sm:p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-blue-50 text-[#0e2756] flex items-center justify-center flex-shrink-0">
             <Users className="w-5 h-5" />
           </div>
           <div className="min-w-0">
@@ -266,8 +266,8 @@ export function AdminUsersPage() {
       admin: false,
     },
     {
-      title: 'Configure Services, Fees, Checklists & Slot Capacities',
-      desc: 'Manage certificate types, informational counter fees, requirements, and schedules',
+      title: 'Configure Services, Checklists & Slot Capacities',
+      desc: 'Manage certificate types, required document checklists, and appointment schedules',
       citizen: false,
       personnel: false,
       admin: true,
@@ -715,18 +715,30 @@ export function AdminRolesPage() {
 }
 
 export function AdminServicesPage() {
-  const { services, saveService, showToast } = usePortal();
+  const {
+    services,
+    saveService,
+    requirements,
+    addRequirement,
+    deleteRequirement,
+    showToast,
+  } = usePortal();
   const [editing, setEditing] = useState(null);
+  const [selectedServiceId, setSelectedServiceId] = useState('birth_cert');
+  const [newName, setNewName] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+
+  const reqs = requirements[selectedServiceId] || [];
 
   return (
     <PortalLayout>
       <div className="border-b border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900">
-            Services & Informational Counter Fee Schedules
+            Civil Registry Services & Requirements Checklists
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Manage civil registry service definitions and informational statutory fees (RA 3753 / LGC 1991).
+            Manage civil registry service turnaround days and supporting document checklists in one place. Payment is collected at the counter upon verification and personal appearance.
           </p>
         </div>
         <button
@@ -734,10 +746,9 @@ export function AdminServicesPage() {
           onClick={() =>
             setEditing({
               id: `srv-${Date.now()}`,
-              code: 'NEW-07',
+              code: 'NEW-05',
               name: '',
               description: '',
-              fee_amount: 155,
               processing_days: 3,
             })
           }
@@ -758,14 +769,16 @@ export function AdminServicesPage() {
               <span className="font-mono font-bold text-[#0e2756] bg-blue-50 px-2 py-0.5 rounded">
                 {s.code}
               </span>
-              <span className="font-bold text-slate-900">
-                {formatCurrency(s.fee_amount)} (Counter)
+              <span className="font-semibold text-slate-700">
+                {s.processing_days} Working Days
               </span>
             </div>
             <div className="font-bold text-sm text-slate-900">{s.name}</div>
             <p className="text-[11px] text-slate-500">{s.description}</p>
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-slate-500">{s.processing_days} Working Days</span>
+              <span className="text-[11px] text-amber-800 font-semibold">
+                Payment at Counter Upon Verification
+              </span>
               <button
                 type="button"
                 onClick={() => setEditing(s)}
@@ -785,7 +798,7 @@ export function AdminServicesPage() {
             <tr>
               <th className="py-3.5 px-4">Code</th>
               <th className="py-3.5 px-4">Service Name</th>
-              <th className="py-3.5 px-4">Informational Counter Fee</th>
+              <th className="py-3.5 px-4">Payment Policy</th>
               <th className="py-3.5 px-4">Turnaround</th>
               <th className="py-3.5 px-4 text-right">Edit</th>
             </tr>
@@ -800,8 +813,8 @@ export function AdminServicesPage() {
                   <div className="font-bold text-slate-900">{s.name}</div>
                   <div className="text-[11px] text-slate-500">{s.description}</div>
                 </td>
-                <td className="py-3.5 px-4 font-bold text-slate-800">
-                  {formatCurrency(s.fee_amount)} (Paid at Counter)
+                <td className="py-3.5 px-4 text-slate-700 font-medium">
+                  At Counter Upon Verification & Appearance
                 </td>
                 <td className="py-3.5 px-4 text-slate-600">
                   {s.processing_days} Working Days
@@ -821,12 +834,116 @@ export function AdminServicesPage() {
         </table>
       </div>
 
+      {/* Integrated Service Requirements Checklist Editor */}
+      <div className="bg-white rounded-xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div>
+            <h2 className="font-serif font-bold text-base sm:text-lg text-slate-900">
+              Supporting Document Checklists per Service
+            </h2>
+            <p className="text-xs text-slate-500">
+              Select a service to view or customize its required and conditional upload items.
+            </p>
+          </div>
+          <select
+            value={selectedServiceId}
+            onChange={(e) => setSelectedServiceId(e.target.value)}
+            className="form-input text-xs w-full sm:w-72"
+          >
+            {services.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!newName.trim()) return;
+            addRequirement(selectedServiceId, {
+              id: `req-${Date.now()}`,
+              serviceId: selectedServiceId,
+              name: newName.trim(),
+              description: newDesc.trim() || 'Clear PDF/JPG/PNG scan up to 10 MB',
+              is_mandatory: true,
+            });
+            setNewName('');
+            setNewDesc('');
+            showToast('Requirement added!', 'success', 'Saved');
+          }}
+          className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex flex-col sm:flex-row gap-2.5 text-xs"
+        >
+          <input
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="New requirement title (e.g. Valid Government ID)"
+            className="form-input text-xs flex-1 bg-white"
+            required
+          />
+          <input
+            type="text"
+            value={newDesc}
+            onChange={(e) => setNewDesc(e.target.value)}
+            placeholder="Description / condition instructions"
+            className="form-input text-xs flex-1 bg-white"
+          />
+          <button
+            type="submit"
+            className="px-4 py-2 bg-[#0e2756] text-white rounded-md font-semibold whitespace-nowrap"
+          >
+            Add Requirement
+          </button>
+        </form>
+
+        <div className="space-y-2.5">
+          {reqs.map((r) => (
+            <div
+              key={r.id}
+              className="rounded-xl border border-slate-200 p-3.5 flex items-center justify-between gap-3 text-xs"
+            >
+              <div>
+                <div className="font-bold text-slate-900">{r.name}</div>
+                <div className="text-slate-500 mt-0.5">{r.description}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => deleteRequirement(selectedServiceId, r.id)}
+                className="text-rose-600 hover:bg-rose-50 p-2 rounded flex-shrink-0"
+                title="Remove requirement"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 space-y-4 text-xs">
-            <h3 className="font-serif font-bold text-base text-slate-900">
-              Configure Civil Registry Service
-            </h3>
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setEditing(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4 modal-overlay"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-200 overflow-hidden text-xs animate-fade-in"
+          >
+            <div className="bg-navy-pattern text-white px-5 py-4 flex items-center justify-between">
+              <h3 className="font-serif font-bold text-base">
+                Configure Civil Registry Service
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditing(null)}
+                className="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white font-semibold"
+              >
+                Close
+              </button>
+            </div>
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
@@ -834,7 +951,7 @@ export function AdminServicesPage() {
                 showToast('Service configuration saved!', 'success', 'Saved');
                 setEditing(null);
               }}
-              className="space-y-3"
+              className="p-6 space-y-3"
             >
               <input
                 type="text"
@@ -862,49 +979,31 @@ export function AdminServicesPage() {
                 }
                 className="form-input text-xs"
               />
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold mb-1">
-                    Informational Fee (PHP)
-                  </label>
-                  <input
-                    type="number"
-                    value={editing.fee_amount}
-                    onChange={(e) =>
-                      setEditing({
-                        ...editing,
-                        fee_amount: parseFloat(e.target.value || 0),
-                      })
-                    }
-                    className="form-input text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold mb-1">Turnaround Days</label>
-                  <input
-                    type="number"
-                    value={editing.processing_days}
-                    onChange={(e) =>
-                      setEditing({
-                        ...editing,
-                        processing_days: parseInt(e.target.value || 1, 10),
-                      })
-                    }
-                    className="form-input text-xs"
-                  />
-                </div>
+              <div>
+                <label className="block font-semibold mb-1">Turnaround Days</label>
+                <input
+                  type="number"
+                  value={editing.processing_days}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      processing_days: parseInt(e.target.value || 1, 10),
+                    })
+                  }
+                  className="form-input text-xs"
+                />
               </div>
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setEditing(null)}
-                  className="px-4 py-2 border rounded"
+                  className="px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-semibold hover:bg-slate-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#0e2756] text-white rounded font-semibold"
+                  className="px-5 py-2.5 bg-[#0e2756] hover:bg-[#122850] text-white rounded-lg font-semibold"
                 >
                   Save Service
                 </button>

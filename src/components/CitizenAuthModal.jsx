@@ -62,7 +62,7 @@ export default function CitizenAuthModal({
     }
     if (role === 'admin') navigate('/admin/dashboard');
     else if (role === 'personnel') navigate('/personnel/dashboard');
-    else navigate('/applicant/dashboard');
+    else navigate('/applicant/services');
   };
 
   const handleLoginSubmit = async (e) => {

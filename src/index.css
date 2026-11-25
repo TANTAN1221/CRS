@@ -6,10 +6,21 @@
 
 :root {
   --primary-navy: #0e2756;
-  --primary-deep: #0a1b3d;
+  --primary-deep: #071738;
+  --primary-hover: #122850;
   --primary-light: #183d84;
-  --accent-gold: #c59b27;
   --bg-slate-soft: #f8fafc;
+}
+
+/* Unified Design System Tokens & Surface Utilities */
+.shadow-2xs,
+.shadow-xs {
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.06);
+}
+
+.backdrop-blur-xs {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 * {
@@ -164,6 +175,24 @@ p, label, input, select, textarea, span {
   outline: none;
   border-color: #0e2756;
   box-shadow: 0 0 0 4px rgba(14, 39, 86, 0.22);
+}
+
+/* Uniform Navy & Slate File Selector Button Styling */
+input[type="file"]::file-selector-button {
+  background-color: #0e2756;
+  color: #ffffff;
+  border: 1px solid #0e2756;
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.9rem;
+  margin-right: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+input[type="file"]::file-selector-button:hover {
+  background-color: #122850;
 }
 
 /* Modal & drawer overscroll containment */

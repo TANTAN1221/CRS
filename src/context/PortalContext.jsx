@@ -21,6 +21,7 @@ import {
   extractRoleFromAuthUser,
   extractCleanNameFromAuthUser,
   scanDocumentForAutoFill,
+  evaluateChecklistWithAI,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -28,6 +29,8 @@ import {
   signOut,
   getIdTokenResult,
   collection,
+  query,
+  where,
   doc,
   getDoc,
   getDocs,
@@ -45,6 +48,9 @@ import {
   storageRef,
   uploadBytes,
   getDownloadURL,
+  supabase,
+  SUPABASE_BUCKET,
+  httpsCallable,
 } from '../services/firebase';
 
 const PortalContext = createContext(null);
@@ -114,21 +120,39 @@ export function PortalProvider({ children }) {
 
     // 1. Primary Real-Time Listeners via Cloud Firestore (`crss-cd118`)
     if (sdk.db) {
-      unsubs.push(
-        onSnapshot(
-          collection(sdk.db, 'applications'),
-          (snap) => {
-            setFirebaseConnected(true);
-            const list = snap.docs
-              .map((d) => ({ id: d.id, ...d.data() }))
-              .sort((a, b) =>
-                String(b.created_at || '').localeCompare(String(a.created_at || ''))
+      // Applicants may only query their own applications. Personnel/admin
+      // accounts may receive the full verification queue. Never start the
+      // listener before Firebase Auth has established a user session.
+      const currentUid = sdk.auth?.currentUser?.uid;
+      if (currentUid) {
+        const applicationsSource =
+          profile?.role === 'personnel' || profile?.role === 'admin'
+            ? collection(sdk.db, 'applications')
+            : query(
+                collection(sdk.db, 'applications'),
+                where('applicantId', '==', currentUid)
               );
-            setApplications(list);
-          },
-          () => {}
-        )
-      );
+        unsubs.push(
+          onSnapshot(
+            applicationsSource,
+            (snap) => {
+              setFirebaseConnected(true);
+              const list = snap.docs
+                .map((d) => ({ id: d.id, ...d.data() }))
+                .sort((a, b) =>
+                  String(b.created_at || '').localeCompare(String(a.created_at || ''))
+                );
+              setApplications(list);
+            },
+            (error) => {
+              console.error('Applications listener failed:', error);
+              setFirebaseConnected(false);
+            }
+          )
+        );
+      } else {
+        setApplications([]);
+      }
 
       unsubs.push(
         onSnapshot(
@@ -376,7 +400,7 @@ export function PortalProvider({ children }) {
         } catch (e) {}
       });
     };
-  }, []);
+  }, [authLoading, profile?.id, profile?.role]);
 
   const appendAudit = useCallback(
     async ({ action, targetType, targetId, summary, actorOverride }) => {
@@ -677,6 +701,9 @@ export function PortalProvider({ children }) {
     const stageInfo = LIFECYCLE_STAGE_MAP[initialStatus];
     const feeTotal = (service.fee_amount || 155) * Number(copiesCount || 1);
 
+    // Strip in-memory rawFile instances before persisting to Firestore / RTDB
+    const serializableDocs = (uploadedDocs || []).map(({ rawFile, ...rest }) => rest);
+
     const newApp = {
       id: appId,
       reference_no: refNo,
@@ -697,7 +724,7 @@ export function PortalProvider({ children }) {
         .toISOString()
         .split('T')[0],
       created_at: nowIso,
-      documents: uploadedDocs,
+      documents: serializableDocs,
       aiScreenings,
       statusHistory: [
         {
@@ -716,7 +743,7 @@ export function PortalProvider({ children }) {
       id: `notif-${Date.now()}`,
       user_id: activeUser.id,
       title: `Application Submitted: ${refNo}`,
-      message: `Your application for ${service.name} has been recorded in Firebase (Tracking: TRK-${refNo}). Informational counter fee: ₱${feeTotal.toFixed(2)}.`,
+      message: `Your application for ${service.name} has been submitted (Reference: ${refNo}). Payment will be made at the counter during document verification and personal appearance.`,
       type: 'application',
       link: `/applicant/document-tracking?ref=${refNo}`,
       is_read: false,
@@ -728,14 +755,20 @@ export function PortalProvider({ children }) {
 
     const sdk = getFirebaseSdk();
     if (sdk?.db) {
-      await Promise.all([
+      try {
+        await Promise.all([
         setDoc(doc(sdk.db, 'applications', appId), {
           ...newApp,
           referenceNo: refNo,
           applicantId: activeUser.id,
         }),
         setDoc(doc(sdk.db, 'notifications', newNotif.id), newNotif),
-      ]).catch(() => {});
+        ]);
+      } catch (error) {
+        setApplications((prev) => prev.filter((a) => a.id !== appId));
+        setNotifications((prev) => prev.filter((n) => n.id !== newNotif.id));
+        throw new Error(`Application could not be saved to the registry database: ${error?.message || 'Firestore write failed.'}`);
+      }
     }
     if (sdk?.rtdb && sdk?.auth?.currentUser) {
       Promise.all([
@@ -748,7 +781,7 @@ export function PortalProvider({ children }) {
       action: 'APPLICATION_SUBMITTED',
       targetType: 'application',
       targetId: refNo,
-      summary: `Submitted ${service.name} (${copiesCount} copies, informational fee ₱${feeTotal.toFixed(2)})`,
+      summary: `Submitted ${service.name} (${copiesCount} copies, counter appearance & payment)`,
     });
 
     if (preferredAppointmentDate && preferredAppointmentSlot) {
@@ -977,9 +1010,6 @@ export function PortalProvider({ children }) {
   };
 
   const bookAppointment = async ({
-    fullName,
-    email,
-    phone,
     serviceId,
     applicationId = null,
     appointmentDate,
@@ -988,11 +1018,19 @@ export function PortalProvider({ children }) {
   }) => {
     const activeUser = profile || {
       id: 'guest-applicant',
-      first_name: fullName || 'Citizen',
-      last_name: '',
-      email: email || '',
-      phone_number: phone || '',
+      first_name: 'Citizen',
+      last_name: 'Applicant',
+      email: '',
+      phone_number: '',
     };
+    const selfFullName = [
+      activeUser.first_name,
+      activeUser.middle_name,
+      activeUser.last_name,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .trim() || 'Citizen Applicant';
     const slots = getTimeSlotsForDate(appointmentDate);
     const desired = slots.find((s) => s.timeSlot === timeSlot);
     if (desired && desired.isFull) {
@@ -1011,9 +1049,9 @@ export function PortalProvider({ children }) {
       id: aptId,
       reference_no: refNo,
       applicant_id: activeUser.id,
-      applicant_name: fullName || `${activeUser.first_name} ${activeUser.last_name}`,
-      applicant_email: email || activeUser.email,
-      applicant_phone: phone || activeUser.phone_number || '+63 917 555 0192',
+      applicant_name: selfFullName,
+      applicant_email: activeUser.email,
+      applicant_phone: activeUser.phone_number || '+63 917 555 0192',
       applicationId,
       service_id: serviceId,
       service_name: service?.name || 'Civil Registry Counter Appointment',
@@ -1030,9 +1068,11 @@ export function PortalProvider({ children }) {
       id: `notif-apt-${Date.now()}`,
       user_id: activeUser.id,
       title: `Appointment Reserved: ${refNo}`,
-      message: `Your counter slot is reserved for ${appointmentDate} (${timeSlot}) at Counter 02. Bring original documents & valid ID.`,
+      message: `Your counter slot is reserved for ${appointmentDate} (${timeSlot}) at Counter 02. Bring original documents & valid ID. Payment is collected at the counter upon verification.`,
       type: 'appointment',
-      link: '/applicant/appointments',
+      link: applicationId
+        ? `/applicant/document-tracking?ref=${applicationId}`
+        : '/applicant/document-tracking',
       is_read: false,
       created_at: nowIso,
     };
@@ -1151,7 +1191,66 @@ export function PortalProvider({ children }) {
     });
   };
 
-  // Cloud Storage Document Upload (10 MB max, PDF/JPG/PNG)
+  // Helper: Convert uploaded image or PDF into a compact cross-device previewable Data URL
+  // Stored directly with the application record in Firestore & Realtime Database (zero Storage CORS errors!)
+  const generateCrossDevicePreviewUrl = (file) =>
+    new Promise((resolve) => {
+      if (!file) {
+        resolve(null);
+        return;
+      }
+      const mime = (file.type || '').toLowerCase();
+      if (mime.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            try {
+              const maxDim = 960;
+              let w = img.width || 800;
+              let h = img.height || 600;
+              if (w > maxDim || h > maxDim) {
+                if (w > h) {
+                  h = Math.round((h * maxDim) / w);
+                  w = maxDim;
+                } else {
+                  w = Math.round((w * maxDim) / h);
+                  h = maxDim;
+                }
+              }
+              const canvas = document.createElement('canvas');
+              canvas.width = w;
+              canvas.height = h;
+              const ctx = canvas.getContext('2d');
+              ctx.fillStyle = '#ffffff';
+              ctx.fillRect(0, 0, w, h);
+              ctx.drawImage(img, 0, 0, w, h);
+              resolve(canvas.toDataURL('image/jpeg', 0.7));
+            } catch {
+              resolve(typeof reader.result === 'string' ? reader.result : null);
+            }
+          };
+          img.onerror = () => resolve(null);
+          img.src = reader.result;
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      if (mime === 'application/pdf' && file.size <= 550 * 1024) {
+        const reader = new FileReader();
+        reader.onload = () =>
+          resolve(typeof reader.result === 'string' ? reader.result : null);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      resolve(null);
+    });
+
+  // Supabase Storage Bucket Upload + Instant In-Database Cross-Device Preview Fallback
   const uploadDocumentFile = async (file, applicationId = 'draft', requirementName = 'Document') => {
     const allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
     if (!allowed.includes(file.type.toLowerCase())) {
@@ -1162,30 +1261,189 @@ export function PortalProvider({ children }) {
     }
 
     const activeUser = profile || { id: 'citizen' };
+    const docId = `doc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const path = `civil-registry-documents/${activeUser.id}/${applicationId}/${Date.now()}_${cleanName}`;
-    let downloadUrl = null;
+    const path = `${activeUser.id}/${applicationId}/${Date.now()}_${cleanName}`;
+    let supabasePublicUrl = null;
+    let usedBucket = SUPABASE_BUCKET;
 
-    const sdk = getFirebaseSdk();
-    if (sdk?.storage) {
-      try {
-        const fRef = storageRef(sdk.storage, path);
-        await uploadBytes(fRef, file, { contentType: file.type });
-        downloadUrl = await getDownloadURL(fRef);
-      } catch (e) {}
-    }
+    const [previewDataUrl] = await Promise.all([
+      generateCrossDevicePreviewUrl(file),
+      (async () => {
+        if (!supabase?.storage) return;
+        // Try primary bucket `civil-registry-documents`, then common fallback bucket names (`documents`, `uploads`, `crs`)
+        const candidateBuckets = Array.from(
+          new Set([SUPABASE_BUCKET, 'civil-registry-documents', 'documents', 'uploads', 'crs'])
+        );
+        for (const bName of candidateBuckets) {
+          try {
+            const { data, error } = await supabase.storage
+              .from(bName)
+              .upload(path, file, {
+                cacheControl: '3600',
+                upsert: true,
+                contentType: file.type,
+              });
+            if (!error && data?.path) {
+              const { data: pubData } = supabase.storage
+                .from(bName)
+                .getPublicUrl(data.path);
+              if (pubData?.publicUrl) {
+                supabasePublicUrl = pubData.publicUrl;
+                usedBucket = bName;
+                break;
+              }
+            }
+          } catch (e) {}
+        }
+      })(),
+    ]);
 
-    return {
-      id: `doc-${Date.now()}`,
+    const docRecord = {
+      id: docId,
       requirementName,
       fileName: file.name,
       fileSizeBytes: file.size,
       mimeType: file.type,
+      storageBucket: previewDataUrl ? 'firestore-inline' : usedBucket,
       storagePath: path,
-      downloadUrl,
-      status: 'verified_by_ai',
+      // Do not expose a guessed/public Supabase object URL. Keep the local
+      // preview for the current review and retain storagePath for signed URLs.
+      downloadUrl: previewDataUrl || null,
+      previewDataUrl: previewDataUrl || null,
+      status: 'uploaded',
       uploadedAt: new Date().toISOString(),
     };
+
+    const sdk = getFirebaseSdk();
+    if (sdk?.rtdb && sdk?.auth?.currentUser && (supabasePublicUrl || previewDataUrl)) {
+      rtdbSet(rtdbRef(sdk.rtdb, `crs/application_documents/${docId}`), docRecord).catch(
+        () => {}
+      );
+    }
+
+    // Attach non-serialized rawFile in memory for immediate Tesseract OCR scanning in Step 3
+    return {
+      ...docRecord,
+      rawFile: file,
+    };
+  };
+
+  // Personnel Action: Flag or Verify an Individual Uploaded Document on an Application
+  const updateApplicationDocumentReview = async (
+    applicationId,
+    docIdOrIndex,
+    reviewState = 'flagged_by_personnel',
+    flagNote = ''
+  ) => {
+    const targetApp = applications.find(
+      (a) => a.id === applicationId || a.reference_no === applicationId
+    );
+    if (!targetApp) return;
+
+    const nowIso = new Date().toISOString();
+    const updatedDocs = (targetApp.documents || []).map((d, idx) => {
+      const isMatch = d.id ? d.id === docIdOrIndex : idx === docIdOrIndex;
+      if (!isMatch) return d;
+      return {
+        ...d,
+        status: reviewState,
+        personnelFlagNote:
+          reviewState === 'flagged_by_personnel'
+            ? flagNote || `Flagged by Civil Registry Personnel for re-upload.`
+            : '',
+        reviewedAt: nowIso,
+      };
+    });
+
+    const updatedApp = {
+      ...targetApp,
+      documents: updatedDocs,
+      updated_at: nowIso,
+    };
+
+    setApplications((prev) =>
+      prev.map((a) => (a.id === targetApp.id ? updatedApp : a))
+    );
+
+    const sdk = getFirebaseSdk();
+    if (sdk?.db) {
+      await setDoc(doc(sdk.db, 'applications', targetApp.id), updatedApp, {
+        merge: true,
+      }).catch(() => {});
+    }
+    if (sdk?.rtdb && sdk?.auth?.currentUser) {
+      rtdbSet(rtdbRef(sdk.rtdb, `crs/applications/${targetApp.id}`), updatedApp).catch(
+        () => {}
+      );
+    }
+  };
+
+  // Applicant Action: Re-Upload a Replacement File for a Flagged Document Inside "My Progress"
+  const replaceApplicationDocument = async (applicationId, docIdOrIndex, newFile) => {
+    const targetApp = applications.find(
+      (a) => a.id === applicationId || a.reference_no === applicationId
+    );
+    if (!targetApp) return;
+
+    const existingDoc = (targetApp.documents || []).find((d, idx) =>
+      d.id ? d.id === docIdOrIndex : idx === docIdOrIndex
+    );
+    const reqLabel = existingDoc?.requirementName || 'Replacement Document';
+    const uploaded = await uploadDocumentFile(
+      newFile,
+      targetApp.reference_no,
+      reqLabel
+    );
+
+    const { rawFile: _ignoredRawFile, ...serializableUploaded } = uploaded;
+
+    const nowIso = new Date().toISOString();
+    const updatedDocs = (targetApp.documents || []).map((d, idx) => {
+      const isMatch = d.id ? d.id === docIdOrIndex : idx === docIdOrIndex;
+      if (!isMatch) return d;
+      return {
+        ...serializableUploaded,
+        requirementName: reqLabel,
+        status: 'reuploaded_by_applicant',
+        personnelFlagNote: '',
+        replacedAt: nowIso,
+      };
+    });
+
+    const entry = {
+      stage: 'Replacement Document Uploaded by Applicant',
+      status: targetApp.status === 'returned' ? 'under_review' : targetApp.status,
+      remarks: `Applicant re-uploaded "${reqLabel}" (${newFile.name}) for personnel review.`,
+      changedBy: targetApp.applicant_name || 'Applicant',
+      timestamp: nowIso,
+    };
+
+    const updatedApp = {
+      ...targetApp,
+      status: targetApp.status === 'returned' ? 'under_review' : targetApp.status,
+      documents: updatedDocs,
+      updated_at: nowIso,
+      statusHistory: [entry, ...(targetApp.statusHistory || [])],
+    };
+
+    setApplications((prev) =>
+      prev.map((a) => (a.id === targetApp.id ? updatedApp : a))
+    );
+
+    const sdk = getFirebaseSdk();
+    if (sdk?.db) {
+      await setDoc(doc(sdk.db, 'applications', targetApp.id), updatedApp, {
+        merge: true,
+      }).catch(() => {});
+    }
+    if (sdk?.rtdb && sdk?.auth?.currentUser) {
+      rtdbSet(rtdbRef(sdk.rtdb, `crs/applications/${targetApp.id}`), updatedApp).catch(
+        () => {}
+      );
+    }
+
+    return uploaded;
   };
 
   // Notifications
@@ -1362,12 +1620,14 @@ export function PortalProvider({ children }) {
   const changeUserRole = async (email, newRole) => {
     const cleanEmail = String(email || '').trim().toLowerCase();
     const emailKey = normalizeEmailKey(cleanEmail);
-    let targetUser = null;
+    const existingUser = usersListRef.current.find(
+      (u) => String(u.email || '').trim().toLowerCase() === cleanEmail
+    );
+    const targetUser = existingUser ? { ...existingUser, role: newRole } : null;
     setUsersList((prev) =>
       prev.map((u) => {
         if (String(u.email || '').trim().toLowerCase() !== cleanEmail) return u;
-        targetUser = { ...u, role: newRole };
-        return targetUser;
+        return { ...u, role: newRole };
       })
     );
     if (
@@ -1377,6 +1637,11 @@ export function PortalProvider({ children }) {
       setProfile((prev) => (prev ? { ...prev, role: newRole } : prev));
     }
     const sdk = getFirebaseSdk();
+    if (sdk?.functions && targetUser?.uid) {
+      const assignRole = httpsCallable(sdk.functions, 'setUserRole');
+      await assignRole({ targetUid: targetUser.uid, role: newRole });
+      await sdk.auth.currentUser?.getIdToken(true).catch(() => {});
+    }
     if (sdk?.db) {
       await Promise.all([
         targetUser?.id
@@ -1519,7 +1784,10 @@ export function PortalProvider({ children }) {
         rescheduleAppointment,
         updateAppointmentStatus,
         uploadDocumentFile,
+        updateApplicationDocumentReview,
+        replaceApplicationDocument,
         scanDocumentForAutoFill,
+        evaluateChecklistWithAI,
         markNotificationRead,
         markAllNotificationsRead,
         saveService,
